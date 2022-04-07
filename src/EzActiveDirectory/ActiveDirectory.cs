@@ -113,6 +113,31 @@ namespace EzActiveDirectory
 
             return true;
         }
+        public List<ActiveDirectoryGroup> FindGroup(string groupName)
+        {
+            List<ActiveDirectoryGroup> groups = new();
+            using DirectoryEntry de = new(LdapPath);
+            try
+            {
+                de.RefreshCache();
+                using DirectorySearcher deSearcher = new(de);
+                deSearcher.Filter = $"(&(objectClass=group)(name=*{groupName}*))";
+                deSearcher.SearchScope = SearchScope.Subtree;
+                var results = deSearcher.FindAll();
+
+                foreach (SearchResult group in results)
+                {
+                    groups.Add(new()
+                    {
+                        Path = group.Path,
+                        Name = group.Properties["name"]?.Value().ToString()
+                    });
+                }
+            }
+            catch (Exception) { }
+
+            return groups;
+        }
         public List<ActiveDirectoryGroup> GetUserGroups(string path)
         {
             using DirectoryEntry user = new(path);
