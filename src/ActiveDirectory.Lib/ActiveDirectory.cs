@@ -123,17 +123,19 @@ namespace ActiveDirectory.Lib
             }
             return true;
         }
-        public List<string> GetUserGroups(string path)
+        public List<ActiveDirectoryGroup> GetUserGroups(string path)
         {
             using DirectoryEntry user = new(path);
-            List<string> groups = new();
+            List<ActiveDirectoryGroup> groups = new();
 
             foreach (var g in user.Properties["memberof"])
             {
                 var stringValue = g.ToString();
                 var output = stringValue[..stringValue.IndexOf(",")];
                 output = output[3..];
-                groups.Add(output);
+
+                ActiveDirectoryGroup group = new() { Name = output, Path = stringValue };
+                groups.Add(group);
             }
 
             groups.Sort();
