@@ -66,52 +66,42 @@ namespace EzActiveDirectory
         }
         public bool RemoveGroup(string path, string groupName)
         {
-            using (DirectoryEntry user = new(path))
+            using DirectoryEntry user = new(path);
+            try
             {
-                try
+                string cnGroup = "";
+                foreach (var group in user.Properties["memberof"])
                 {
-                    string cnGroup = "";
-                    foreach (var group in user.Properties["memberof"])
+                    if (group.ToString().Contains(groupName))
                     {
-                        if (group.ToString().Contains(groupName))
-                        {
-                            cnGroup = group.ToString();
-                            break;
-                        }
+                        cnGroup = group.ToString();
+                        break;
                     }
-                    using DirectoryEntry degroup = new($"LDAP://{ cnGroup }", null, null);
-                    degroup.Invoke("Remove", new object[] { path });
-                    degroup.CommitChanges();
                 }
-                catch
-                {
-                    return false;
-                }
+                using DirectoryEntry degroup = new($"LDAP://{ cnGroup }", null, null);
+                degroup.Invoke("Remove", new object[] { path });
+                degroup.CommitChanges();
             }
+            catch
+            {
+                return false;
+            }
+
             return true;
         }
         public bool AddGroup(string path, string groupName)
         {
             string cnGroup = "";
 
-            using (DirectoryEntry de = new(LdapPath))
-            {
-                try
-                {
-                    de.RefreshCache();
-                    using DirectorySearcher deSearcher = new(de);
-                    deSearcher.Filter = $"(&(objectClass=group)(name={groupName}))";
-                    deSearcher.SearchScope = SearchScope.Subtree;
-                    cnGroup = deSearcher.FindOne().Path;
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-            }
-
+            using DirectoryEntry de = new(LdapPath);
             try
             {
+                de.RefreshCache();
+                using DirectorySearcher deSearcher = new(de);
+                deSearcher.Filter = $"(&(objectClass=group)(name={groupName}))";
+                deSearcher.SearchScope = SearchScope.Subtree;
+                cnGroup = deSearcher.FindOne().Path;
+
                 using DirectoryEntry deGroup = new(cnGroup, null, null);
                 deGroup.Invoke("Add", new object[] { path });
                 deGroup.CommitChanges();
@@ -120,6 +110,7 @@ namespace EzActiveDirectory
             {
                 return false;
             }
+
             return true;
         }
         public List<ActiveDirectoryGroup> GetUserGroups(string path)
