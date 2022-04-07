@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ActiveDirectory.Lib.PasswordGenerator
+namespace EzActiveDirectory.PasswordGenerator
 {
     public class PasswordGenerator
     {

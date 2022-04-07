@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ActiveDirectory.Lib.Models
+namespace EzActiveDirectory.Models
 {
     public class ActiveDirectoryUser
     {

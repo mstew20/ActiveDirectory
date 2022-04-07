@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ActiveDirectory.Lib", "src\ActiveDirectory.Lib\ActiveDirectory.Lib.csproj", "{DB14362A-7796-4181-9180-5E8EB3649FE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EzActiveDirectory", "src\ActiveDirectory.Lib\EzActiveDirectory.csproj", "{DB14362A-7796-4181-9180-5E8EB3649FE0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

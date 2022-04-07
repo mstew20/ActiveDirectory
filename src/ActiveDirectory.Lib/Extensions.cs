@@ -1,7 +1,6 @@
 ﻿using System.DirectoryServices;
 
-#pragma warning disable CA1416
-namespace ActiveDirectory.Lib
+namespace EzActiveDirectory
 {
     public static class Extensions
     {

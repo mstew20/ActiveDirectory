@@ -1,4 +1,4 @@
-﻿using ActiveDirectory.Lib.Models;
+﻿using EzActiveDirectory.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,8 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-#pragma warning disable CA1416
-namespace ActiveDirectory.Lib
+namespace EzActiveDirectory
 {
     public class ActiveDirectory
     {
@@ -131,8 +130,8 @@ namespace ActiveDirectory.Lib
             foreach (var g in user.Properties["memberof"])
             {
                 var stringValue = g.ToString();
-                var output = stringValue[..stringValue.IndexOf(",")];
-                output = output[3..];
+                var output = stringValue.Substring(0, stringValue.IndexOf(","));
+                output = output.Substring(3);
 
                 ActiveDirectoryGroup group = new() { Name = output, Path = stringValue };
                 groups.Add(group);
@@ -224,7 +223,7 @@ namespace ActiveDirectory.Lib
                     userModel.IsUnlocked = true;
                 }
 
-                userModel.Message = $"{ d[..d.IndexOf(".")] }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
+                userModel.Message = $"{ d.Substring(0, d.IndexOf(".")) }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
                 yield return userModel;
             }
         }
@@ -297,7 +296,7 @@ namespace ActiveDirectory.Lib
                 userModel.IsUnlocked = true;
             }
 
-            var server = dUser.Context.ConnectedServer[..domain.IndexOf(".")];
+            var server = dUser.Context.ConnectedServer.Substring(0, domain.IndexOf("."));
             userModel.Message = $"{ server }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
 
             return userModel;
@@ -453,7 +452,7 @@ namespace ActiveDirectory.Lib
                 var lastSet = DateTime.FromFileTimeUtc((long)u["pwdlastset"].Value()).ToLocalTime();
                 user.IsActive = IsActive(u["userAccountControl"].Value());
                 var cnManager = u["manager"].Value()?.ToString();
-                user.Manager = cnManager?[3..cnManager.IndexOf(',')];
+                user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
 
                 if (lastSet.Year == 1600)
                 {
