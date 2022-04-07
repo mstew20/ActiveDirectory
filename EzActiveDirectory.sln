@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EzActiveDirectory", "src\ActiveDirectory.Lib\EzActiveDirectory.csproj", "{DB14362A-7796-4181-9180-5E8EB3649FE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EzActiveDirectory", "src\EzActiveDirectory\EzActiveDirectory.csproj", "{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{DB14362A-7796-4181-9180-5E8EB3649FE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DB14362A-7796-4181-9180-5E8EB3649FE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DB14362A-7796-4181-9180-5E8EB3649FE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DB14362A-7796-4181-9180-5E8EB3649FE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
