@@ -30,7 +30,6 @@ namespace ActiveDirectory.Lib
             LdapPath = ldap;
             SetLdapFromDomain();
         }
-
         public void ChangeDomain(string domain)
         {
             Domain = domain;
@@ -41,7 +40,6 @@ namespace ActiveDirectory.Lib
             LdapPath = ldap;
             SetDomainFromLdap();
         }
-
 
         //  Public AD Methods
         public List<ActiveDirectoryUser> GetADUsers(string firstName, string lastName, string empId, string userName)
@@ -178,13 +176,129 @@ namespace ActiveDirectory.Lib
                 throw new PasswordException(ex.Message);
             }
         }
-        public void EnableExpiredAccount(ActiveDirectoryUser user)
+        public void ExpireNow(string userPath)
         {
-            SaveAdProperty(user.Path, "accountExpires", "0");
+            SaveAdProperty(userPath, "accountExpires", DateTime.Now.ToFileTime().ToString());
         }
-        public void ExpireAccount(ActiveDirectoryUser user)
+        public void ExpireAt(string userPath, DateTime date)
         {
-            SaveAdProperty(user.Path, "accountExpires", DateTime.Now.ToFileTime().ToString());
+            SaveAdProperty(userPath, "accountExpires", date.ToFileTime().ToString());
+        }
+        public void NeverExpires(string userPath)
+        {
+            SaveAdProperty(userPath, "accountExpires", "0");
+        }
+
+        //  Unlock Tool related methods
+        public List<string> GetDomains()
+        {
+            DirectoryContext directoryContext = new(DirectoryContextType.Domain, Domain);
+            var domain = DomainController.FindAll(directoryContext);
+
+            List<string> output = new();
+            foreach (var d in domain)
+            {
+                output.Add(d.ToString());
+            }
+
+            //output.RemoveAt(3);
+            //output.Remove("DRPINADS01.hgvc.com");
+            output.Sort();
+
+            return output;
+        }
+        public IEnumerable<UnlockUserModel> ADUnlockTool(ActiveDirectoryUser user)
+        {
+            var domains = GetDomains();
+
+            foreach (var d in domains)
+            {
+                using PrincipalContext context = new(ContextType.Domain, d);
+                using var dUser = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, user.UserName);
+                UnlockUserModel userModel = new();
+                if (dUser.IsAccountLockedOut())
+                {
+                    dUser.UnlockAccount();
+                    userModel.IsUnlocked = true;
+                }
+
+                userModel.Message = $"{ d[..d.IndexOf(".")] }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
+                yield return userModel;
+            }
+        }
+        public async Task<IEnumerable<UnlockUserModel>> ADUnlockToolParallelAsync(ActiveDirectoryUser user)
+        {
+            List<Task> tasks = new();
+            var domains = GetDomains();
+            List<UnlockUserModel> output = new();
+
+            foreach (var d in domains)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        output.Add(CheckUserDomain(d, user.UserName));
+                    }
+                    catch (Exception)
+                    {
+                        output.Add(new UnlockUserModel { Message = $"Failed to connect to { d }" });
+                    }
+                    finally
+                    {
+                        UnlockToolAccountChecked?.Invoke(output);
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+            return output;
+        }
+        public List<string> GetAllLockedUsers()
+        {
+            ProcessStartInfo processStartInfo = new()
+            {
+                FileName = "powershell.exe",
+                Arguments = "& Search-ADAccount -LockedOut | Select Name",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using Process p = new();
+            p.StartInfo = processStartInfo;
+            p.Start();
+            var res = p.StandardOutput.ReadToEnd();
+            var usersResponse = res.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            usersResponse.RemoveRange(0, 3);
+            usersResponse.RemoveRange(usersResponse.Count - 2, 2);
+
+            List<string> output = new();
+            foreach (var x in usersResponse)
+            {
+
+                var r = x.Trim();
+                output.Add(r);
+            }
+
+            return output;
+        }
+        public UnlockUserModel CheckUserDomain(string domain, string userName)
+        {
+            using PrincipalContext context = new(ContextType.Domain, domain);
+            using var dUser = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, userName);
+            UnlockUserModel userModel = new();
+
+            if (dUser.IsAccountLockedOut() || dUser.BadLogonCount >= 6)
+            {
+                dUser.UnlockAccount();
+                userModel.IsUnlocked = true;
+            }
+
+            var server = dUser.Context.ConnectedServer[..domain.IndexOf(".")];
+            userModel.Message = $"{ server }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
+
+            return userModel;
         }
 
         //  Private AD Methods
@@ -353,119 +467,6 @@ namespace ActiveDirectory.Lib
 
             return adUsers;
         }
-
-        //  Unlock Tool related methods
-        public List<string> GetDomains()
-        {
-            DirectoryContext directoryContext = new(DirectoryContextType.Domain, Domain);
-            var domain = DomainController.FindAll(directoryContext);
-
-            List<string> output = new();
-            foreach (var d in domain)
-            {
-                output.Add(d.ToString());
-            }
-
-            //output.RemoveAt(3);
-            //output.Remove("DRPINADS01.hgvc.com");
-            output.Sort();
-
-            return output;
-        }
-        public IEnumerable<UnlockUserModel> ADUnlockTool(ActiveDirectoryUser user)
-        {
-            var domains = GetDomains();
-
-            foreach (var d in domains)
-            {
-                using PrincipalContext context = new(ContextType.Domain, d);
-                using var dUser = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, user.UserName);
-                UnlockUserModel userModel = new();
-                if (dUser.IsAccountLockedOut())
-                {
-                    dUser.UnlockAccount();
-                    userModel.IsUnlocked = true;
-                }
-
-                userModel.Message = $"{ d[..d.IndexOf(".")] }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
-                yield return userModel;
-            }
-        }
-        public async Task<IEnumerable<UnlockUserModel>> ADUnlockToolParallelAsync(ActiveDirectoryUser user)
-        {
-            List<Task> tasks = new();
-            var domains = GetDomains();
-            List<UnlockUserModel> output = new();
-
-            foreach (var d in domains)
-            {
-                tasks.Add(Task.Run(() =>
-                {
-                    try
-                    {
-                        output.Add(CheckUserDomain(d, user.UserName));
-                    }
-                    catch (Exception)
-                    {
-                        output.Add(new UnlockUserModel { Message = $"Failed to connect to { d }" });
-                    }
-                    finally
-                    {
-                        UnlockToolAccountChecked?.Invoke(output);
-                    }
-                }));
-            }
-
-            await Task.WhenAll(tasks);
-            return output;
-        }
-        public List<string> GetAllLockedUsers()
-        {
-            ProcessStartInfo processStartInfo = new()
-            {
-                FileName = "powershell.exe",
-                Arguments = "& Search-ADAccount -LockedOut | Select Name",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using Process p = new();
-            p.StartInfo = processStartInfo;
-            p.Start();
-            var res = p.StandardOutput.ReadToEnd();
-            var usersResponse = res.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-            usersResponse.RemoveRange(0, 3);
-            usersResponse.RemoveRange(usersResponse.Count - 2, 2);
-
-            List<string> output = new();
-            foreach (var x in usersResponse)
-            {
-
-                var r = x.Trim();
-                output.Add(r);
-            }
-
-            return output;
-        }
-        public UnlockUserModel CheckUserDomain(string domain, string userName)
-        {
-            using PrincipalContext context = new(ContextType.Domain, domain);
-            using var dUser = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, userName);
-            UnlockUserModel userModel = new();
-
-            if (dUser.IsAccountLockedOut() || dUser.BadLogonCount >= 6)
-            {
-                dUser.UnlockAccount();
-                userModel.IsUnlocked = true;
-            }
-
-            var server = dUser.Context.ConnectedServer[..domain.IndexOf(".")];
-            userModel.Message = $"{ server }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
-
-            return userModel;
-        }
-
         private void SetLdapFromDomain()
         {
             StringBuilder sb = new();
