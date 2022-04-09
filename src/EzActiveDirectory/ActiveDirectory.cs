@@ -64,23 +64,14 @@ namespace EzActiveDirectory
             user.CommitChanges();
             user.Close();
         }
-        public bool RemoveGroup(string path, string groupName)
+        public bool RemoveGroup(string userPath, string groupPath)
         {
-            using DirectoryEntry user = new(path);
+            using DirectoryEntry user = new(userPath);
             try
             {
-                string cnGroup = "";
-                foreach (var group in user.Properties["memberof"])
-                {
-                    if (group.ToString().Contains(groupName))
-                    {
-                        cnGroup = group.ToString();
-                        break;
-                    }
-                }
-                using DirectoryEntry degroup = new($"LDAP://{ cnGroup }", null, null);
-                degroup.Invoke("Remove", new object[] { path });
-                degroup.CommitChanges();
+                using DirectoryEntry deGroup = new(groupPath, null, null);
+                deGroup.Invoke("Remove", new object[] { userPath });
+                deGroup.CommitChanges();
             }
             catch
             {
@@ -89,21 +80,12 @@ namespace EzActiveDirectory
 
             return true;
         }
-        public bool AddGroup(string path, string groupName)
+        public bool AddGroup(string userPath, string groupPath)
         {
-            string cnGroup = "";
-
-            using DirectoryEntry de = new(LdapPath);
             try
             {
-                de.RefreshCache();
-                using DirectorySearcher deSearcher = new(de);
-                deSearcher.Filter = $"(&(objectClass=group)(name={groupName}))";
-                deSearcher.SearchScope = SearchScope.Subtree;
-                cnGroup = deSearcher.FindOne().Path;
-
-                using DirectoryEntry deGroup = new(cnGroup, null, null);
-                deGroup.Invoke("Add", new object[] { path });
+                using DirectoryEntry deGroup = new(groupPath, null, null);
+                deGroup.Invoke("Add", new object[] { userPath });
                 deGroup.CommitChanges();
             }
             catch (Exception)
@@ -138,22 +120,23 @@ namespace EzActiveDirectory
 
             return groups;
         }
-        public List<ActiveDirectoryGroup> GetUserGroups(string path)
+        public List<ActiveDirectoryGroup> GetUserGroups(string userPath)
         {
-            using DirectoryEntry user = new(path);
+            using DirectoryEntry user = new(userPath);
             List<ActiveDirectoryGroup> groups = new();
 
             foreach (var g in user.Properties["memberof"])
             {
-                var stringValue = g.ToString();
-                var output = stringValue.Substring(0, stringValue.IndexOf(","));
-                output = output.Substring(3);
+                var groupPath = g.ToString();
+                var groupName = groupPath.Substring(0, groupPath.IndexOf(","));
+                groupName = groupName.Substring(3);
+                groupPath = $"{LDAP_STRING}{groupPath}";
 
-                ActiveDirectoryGroup group = new() { Name = output, Path = stringValue };
+                ActiveDirectoryGroup group = new() { Name = groupName, Path = groupPath };
                 groups.Add(group);
             }
 
-            groups.Sort();
+            groups = groups.OrderBy(x => x.Name).ToList();
             return groups;
         }
         public bool UnlockADUser(string path)
