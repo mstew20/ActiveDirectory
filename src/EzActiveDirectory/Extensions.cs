@@ -33,7 +33,7 @@ namespace EzActiveDirectory
                 return output;
             }
 
-            return default(T);
+            return default;
         }
     }
 }
