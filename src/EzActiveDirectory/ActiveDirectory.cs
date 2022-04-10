@@ -236,18 +236,8 @@ namespace EzActiveDirectory
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    try
-                    {
-                        output.Add(CheckUserDomain(d, user.UserName));
-                    }
-                    catch (Exception)
-                    {
-                        output.Add(new UnlockUserModel { Message = $"Failed to connect to { d }" });
-                    }
-                    finally
-                    {
-                        UnlockToolAccountChecked?.Invoke(output);
-                    }
+                    output.Add(CheckUserDomain(d, user.UserName));
+                    UnlockToolAccountChecked?.Invoke(output);
                 }));
             }
 
@@ -285,18 +275,49 @@ namespace EzActiveDirectory
         }
         public UnlockUserModel CheckUserDomain(string domain, string userName)
         {
-            using PrincipalContext context = new(ContextType.Domain, domain);
-            using var dUser = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, userName);
-            UnlockUserModel userModel = new();
-
-            if (dUser.IsAccountLockedOut() || dUser.BadLogonCount >= 6)
+            string message = "";
+            bool isUnlocked = false;
+            try
             {
-                dUser.UnlockAccount();
-                userModel.IsUnlocked = true;
+                using DirectoryEntry de = new($"{LDAP_STRING}{domain}");
+                var filter = SearchFilter("", "", "", userName);
+
+                using DirectorySearcher search = new(de)
+                {
+                    PageSize = 1000,
+                    SearchScope = SearchScope.Subtree,
+                    Filter = $"(&(objectClass=user)(objectCategory=person) { filter })"
+                };
+                PropertiesToLoad(search, new[] { "badPasswordTime", "badPwdCount", "lockouttime", "adsPath" });
+
+                SearchResult result = search.FindOne();
+                DateTime? badLogonTime = DateTime.FromFileTime((long)result.Properties["badPasswordTime"].Value());
+                var badLogonCount = Convert.ToInt32(result.Properties["badPwdCount"].Value().ToString());
+                if (badLogonTime == DateTime.MinValue)
+                {
+                    badLogonTime = null;
+                }
+
+                bool isLockedOut = Convert.ToBoolean(result.Properties["lockouttime"].Value());
+                if (isLockedOut || badLogonCount >= 6)
+                {
+                    UnlockADUser(result.Properties["adsPath"].Value().ToString());
+                    isUnlocked = true;
+                }
+
+                var server = result.Properties["adsPath"].Value().ToString().Replace(LDAP_STRING, "").Split('/')[0].Replace($".{Domain}", "");
+                message = $"{ server }: { badLogonCount } Failed last on { badLogonTime?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
+            }
+            catch (Exception ex)
+            {
+                message = $"Failed to connect to { domain }";
             }
 
-            var server = dUser.Context.ConnectedServer.Substring(0, domain.IndexOf("."));
-            userModel.Message = $"{ server }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
+            UnlockUserModel userModel = new()
+            {
+                Message = message,
+                IsUnlocked = isUnlocked
+            };
 
             return userModel;
         }
