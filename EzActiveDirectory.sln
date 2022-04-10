@@ -5,6 +5,8 @@ VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EzActiveDirectory", "src\EzActiveDirectory\EzActiveDirectory.csproj", "{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "src\TestConsole\TestConsole.csproj", "{D4E9A61F-646C-43E2-BA96-18CD3E1B0F53}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4AE5A8E-DEBD-4ECF-B116-E2967D604801}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4E9A61F-646C-43E2-BA96-18CD3E1B0F53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4E9A61F-646C-43E2-BA96-18CD3E1B0F53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4E9A61F-646C-43E2-BA96-18CD3E1B0F53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4E9A61F-646C-43E2-BA96-18CD3E1B0F53}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

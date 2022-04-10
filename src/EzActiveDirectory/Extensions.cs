@@ -15,7 +15,7 @@ namespace EzActiveDirectory
             return null;
         }
 
-        public static T GetValue<T>(this ResultPropertyValueCollection result, Func<object, T> converter)
+        public static T GetValue<T>(this ResultPropertyValueCollection result, Func<object, T> converter = null)
         {
             T output;
             if (result.Count > 0)
