@@ -1,4 +1,5 @@
-﻿using System.DirectoryServices;
+﻿using System;
+using System.DirectoryServices;
 
 namespace EzActiveDirectory
 {
@@ -12,6 +13,27 @@ namespace EzActiveDirectory
             }
 
             return null;
+        }
+
+        public static T GetValue<T>(this ResultPropertyValueCollection result, Func<object, T> converter)
+        {
+            T output;
+            if (result.Count > 0)
+            {
+                var value = result[0];
+                if (converter is not null)
+                {
+                    output = converter.Invoke(value);
+                }
+                else
+                {
+                    output = (T)Convert.ChangeType(value, typeof(T));
+                }
+
+                return output;
+            }
+
+            return default(T);
         }
     }
 }
