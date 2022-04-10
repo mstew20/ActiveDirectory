@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
+// For all AD property names visit: http://kouti.com/tables/userattributes.htm
 namespace EzActiveDirectory
 {
     public class ActiveDirectory
@@ -192,17 +192,17 @@ namespace EzActiveDirectory
         //  Unlock Tool related methods
         public List<string> GetDomains()
         {
-            DirectoryContext directoryContext = new(DirectoryContextType.Domain, Domain);
-            var domain = DomainController.FindAll(directoryContext);
+            using DirectoryEntry de = new(LdapPath);
+            string filter = "(&(objectCategory=computer) (| (primaryGroupID=516) (primaryGroupID=521)))";
+            using DirectorySearcher searcher = new(de, filter);
+            var results = searcher.FindAll();
 
             List<string> output = new();
-            foreach (var d in domain)
+            foreach (SearchResult domain in results)
             {
-                output.Add(d.ToString());
+                output.Add(domain.Properties["name"].Value().ToString());
             }
 
-            //output.RemoveAt(3);
-            //output.Remove("DRPINADS01.hgvc.com");
             output.Sort();
 
             return output;
