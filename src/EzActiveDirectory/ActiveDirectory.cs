@@ -347,7 +347,7 @@ namespace EzActiveDirectory
 
                     foreach (var p in search.PropertiesToLoad)
                     {
-                        tempDict.Add(p.ToString(), r.Properties[p.ToString()]);
+                        tempDict.Add(p, r.Properties[p]);
                     }
 
                     output.Add(tempDict);
