@@ -445,47 +445,47 @@ namespace EzActiveDirectory
         }
         private List<ActiveDirectoryUser> ConvertToAdUser(List<Dictionary<string, ResultPropertyValueCollection>> users)
         {
-            List<ActiveDirectoryUser> adUsers = new();
+            List<ActiveDirectoryUser> output = new();
 
-            foreach (var u in users)
+            foreach (var userResults in users)
             {
                 ActiveDirectoryUser user = new();
 
-                user.Path = u["adspath"].GetValue<string>();
-                user.DisplayName = u["name"].GetValue<string>();
-                user.EmployeeId = u["employeeid"].GetValue<string>();
-                user.IsLockedOut = u["lockouttime"].GetValue<bool>();
-                user.Email = u["mail"].GetValue<string>();
-                user.UserName = u["samaccountname"].GetValue<string>();
-                user.Notes = u["info"].GetValue<string>();
-                user.HomeDirectory = u["homedirectory"].GetValue<string>();
-                user.State = u["st"].GetValue<string>();
-                user.City = u["l"].GetValue<string>();
-                user.Office = u["physicalDeliveryOfficeName"].GetValue<string>();
-                user.DateCreated = u["whenCreated"].GetValue<DateTime>();
-                user.DateModified = u["whenChanged"].GetValue<DateTime>();
-                user.StreetAddress = u["streetAddress"].GetValue<string>();
-                user.JobTitle = u["Title"].GetValue<string>();
-                user.Department = u["department"].GetValue<string>();
-                user.IsExpired = IsExpired(u["accountExpires"].GetValue<object>());
-                user.IsActive = IsActive(u["userAccountControl"].GetValue<object>());
-                var cnManager = u["manager"].GetValue<string>();
+                user.Path = userResults["adspath"].GetValue<string>();
+                user.DisplayName = userResults["name"].GetValue<string>();
+                user.EmployeeId = userResults["employeeid"].GetValue<string>();
+                user.IsLockedOut = userResults["lockouttime"].GetValue<bool>();
+                user.Email = userResults["mail"].GetValue<string>();
+                user.UserName = userResults["samaccountname"].GetValue<string>();
+                user.Notes = userResults["info"].GetValue<string>();
+                user.HomeDirectory = userResults["homedirectory"].GetValue<string>();
+                user.State = userResults["st"].GetValue<string>();
+                user.City = userResults["l"].GetValue<string>();
+                user.Office = userResults["physicalDeliveryOfficeName"].GetValue<string>();
+                user.DateCreated = userResults["whenCreated"].GetValue<DateTime>();
+                user.DateModified = userResults["whenChanged"].GetValue<DateTime>();
+                user.StreetAddress = userResults["streetAddress"].GetValue<string>();
+                user.JobTitle = userResults["Title"].GetValue<string>();
+                user.Department = userResults["department"].GetValue<string>();
+                user.IsExpired = IsExpired(userResults["accountExpires"].GetValue<object>());
+                user.IsActive = IsActive(userResults["userAccountControl"].GetValue<object>());
+                var cnManager = userResults["manager"].GetValue<string>();
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
 
-                var lastSet = DateTime.FromFileTimeUtc(u["pwdlastset"].GetValue<long>()).ToLocalTime();
+                var lastSet = DateTime.FromFileTimeUtc(userResults["pwdlastset"].GetValue<long>()).ToLocalTime();
                 if (lastSet == DateTime.MinValue)
                 {
                     user.PasswordLastSet = "";
                 }
                 else
                 {
-                    user.PasswordLastSet = $"{ lastSet:MM/dd/yyyy h:mm tt} { (PasswordNeverExpires(u["userAccountControl"].GetValue<object>()) ? "" : $"({ lastSet.AddDays(90).Subtract(DateTime.Now).Days })") }";
+                    user.PasswordLastSet = $"{ lastSet:MM/dd/yyyy h:mm tt} { (PasswordNeverExpires(userResults["userAccountControl"].GetValue<object>()) ? "" : $"({ lastSet.AddDays(90).Subtract(DateTime.Now).Days })") }";
                 }
 
-                adUsers.Add(user);
+                output.Add(user);
             }
 
-            return adUsers;
+            return output;
         }
         private void SetLdapFromDomain()
         {
