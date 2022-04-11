@@ -451,36 +451,35 @@ namespace EzActiveDirectory
             {
                 ActiveDirectoryUser user = new();
 
-                user.Path = u["adspath"].Value()?.ToString();
-                user.DisplayName = u["name"].Value()?.ToString();
-                user.EmployeeId = u["employeeid"].Value()?.ToString();
-                var s = u["lockouttime"].Value();
-                user.IsLockedOut = Convert.ToBoolean(s);
-                user.Email = u["mail"].Value()?.ToString();
-                user.UserName = u["samaccountname"].Value()?.ToString();
-                user.Notes = u["info"].Value()?.ToString();
-                user.HomeDirectory = u["homedirectory"].Value()?.ToString();
-                user.State = u["st"].Value()?.ToString();
-                user.City = u["l"].Value()?.ToString();
-                user.Office = u["physicalDeliveryOfficeName"].Value()?.ToString();
-                user.DateCreated = (DateTime)u["whenCreated"].Value();
-                user.DateModified = (DateTime)u["whenChanged"].Value();
-                user.StreetAddress = u["streetAddress"].Value()?.ToString();
-                user.JobTitle = u["Title"].Value()?.ToString();
-                user.Department = u["department"].Value()?.ToString();
-                user.IsExpired = IsExpired(u["accountExpires"].Value());
-                var lastSet = DateTime.FromFileTimeUtc((long)u["pwdlastset"].Value()).ToLocalTime();
-                user.IsActive = IsActive(u["userAccountControl"].Value());
-                var cnManager = u["manager"].Value()?.ToString();
+                user.Path = u["adspath"].GetValue<string>();
+                user.DisplayName = u["name"].GetValue<string>();
+                user.EmployeeId = u["employeeid"].GetValue<string>();
+                user.IsLockedOut = u["lockouttime"].GetValue<bool>();
+                user.Email = u["mail"].GetValue<string>();
+                user.UserName = u["samaccountname"].GetValue<string>();
+                user.Notes = u["info"].GetValue<string>();
+                user.HomeDirectory = u["homedirectory"].GetValue<string>();
+                user.State = u["st"].GetValue<string>();
+                user.City = u["l"].GetValue<string>();
+                user.Office = u["physicalDeliveryOfficeName"].GetValue<string>();
+                user.DateCreated = u["whenCreated"].GetValue<DateTime>();
+                user.DateModified = u["whenChanged"].GetValue<DateTime>();
+                user.StreetAddress = u["streetAddress"].GetValue<string>();
+                user.JobTitle = u["Title"].GetValue<string>();
+                user.Department = u["department"].GetValue<string>();
+                user.IsExpired = IsExpired(u["accountExpires"].GetValue<object>());
+                user.IsActive = IsActive(u["userAccountControl"].GetValue<object>());
+                var cnManager = u["manager"].GetValue<string>();
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
 
+                var lastSet = DateTime.FromFileTimeUtc(u["pwdlastset"].GetValue<long>()).ToLocalTime();
                 if (lastSet.Year == 1600)
                 {
                     user.PasswordLastSet = "";
                 }
                 else
                 {
-                    user.PasswordLastSet = $"{ lastSet:MM/dd/yyyy h:mm tt} { (PasswordNeverExpires(u["userAccountControl"].Value()) ? "" : $"({ lastSet.AddDays(90).Subtract(DateTime.Now).Days })") }";
+                    user.PasswordLastSet = $"{ lastSet:MM/dd/yyyy h:mm tt} { (PasswordNeverExpires(u["userAccountControl"].GetValue<object>()) ? "" : $"({ lastSet.AddDays(90).Subtract(DateTime.Now).Days })") }";
                 }
 
                 adUsers.Add(user);
