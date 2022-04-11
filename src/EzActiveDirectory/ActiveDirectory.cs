@@ -3,12 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.DirectoryServices;
-using System.DirectoryServices.AccountManagement;
-using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
 // For all AD property names visit: http://kouti.com/tables/userattributes.htm
 namespace EzActiveDirectory
 {
@@ -21,7 +19,7 @@ namespace EzActiveDirectory
         public string LdapPath { get; private set; }
 
         public Action<List<UnlockUserModel>> UnlockToolAccountChecked { get; set; }
-
+        
         // Initialization
         public void Initialize(string domain = "", string ldap = "")
         {
@@ -171,9 +169,9 @@ namespace EzActiveDirectory
 
                 de.CommitChanges();
             }
-            catch (PasswordException ex)
+            catch (Exception ex)
             {
-                throw new PasswordException(ex.Message);
+                throw;
             }
         }
         public void ExpireNow(string userPath)
@@ -206,25 +204,6 @@ namespace EzActiveDirectory
             output.Sort();
 
             return output;
-        }
-        public IEnumerable<UnlockUserModel> ADUnlockTool(ActiveDirectoryUser user)
-        {
-            var domains = GetDomains();
-
-            foreach (var d in domains)
-            {
-                using PrincipalContext context = new(ContextType.Domain, d);
-                using var dUser = UserPrincipal.FindByIdentity(context, IdentityType.SamAccountName, user.UserName);
-                UnlockUserModel userModel = new();
-                if (dUser.IsAccountLockedOut())
-                {
-                    dUser.UnlockAccount();
-                    userModel.IsUnlocked = true;
-                }
-
-                userModel.Message = $"{ d.Substring(0, d.IndexOf(".")) }: { dUser.BadLogonCount } Failed last on { dUser.LastBadPasswordAttempt?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
-                yield return userModel;
-            }
         }
         public async Task<IEnumerable<UnlockUserModel>> ADUnlockToolParallelAsync(ActiveDirectoryUser user)
         {
