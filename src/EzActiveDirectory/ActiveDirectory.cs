@@ -272,7 +272,7 @@ namespace EzActiveDirectory
                 SearchResult result = search.FindOne();
                 DateTime? badLogonTime = DateTime.FromFileTime(result.Properties["badPasswordTime"].GetValue<long>());
                 var badLogonCount = result.Properties["badPwdCount"].GetValue<int>();
-                if (badLogonTime == DateTime.MinValue)
+                if (badLogonTime?.Year <= 1600)
                 {
                     badLogonTime = null;
                 }
@@ -452,7 +452,7 @@ namespace EzActiveDirectory
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
 
                 var lastSet = DateTime.FromFileTimeUtc(userResults["pwdlastset"].GetValue<long>()).ToLocalTime();
-                if (lastSet == DateTime.MinValue)
+                if (lastSet.Year <= 1600)
                 {
                     user.PasswordLastSet = "";
                 }
