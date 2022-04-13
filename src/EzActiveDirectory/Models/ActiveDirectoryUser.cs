@@ -10,7 +10,7 @@ namespace EzActiveDirectory.Models
         public string Path { get; set; }
         public bool IsLockedOut { get; set; }
         public string EmployeeId { get; set; }
-        public string PasswordLastSet { get; set; }
+        public DateTime PasswordLastSet { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime DateModified { get; set; }
         public bool IsExpired { get; set; }
@@ -36,5 +36,6 @@ namespace EzActiveDirectory.Models
         public string Notes { get; set; }
         public string Manager { get; set; }
         public bool IsActive { get; set; }
+        public bool PasswordNeverExpires { get; internal set; }
     }
 }

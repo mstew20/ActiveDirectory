@@ -450,17 +450,9 @@ namespace EzActiveDirectory
                 user.IsActive = IsActive(userResults["userAccountControl"].GetValue<object>());
                 var cnManager = userResults["manager"].GetValue<string>();
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
-
-                var lastSet = DateTime.FromFileTimeUtc(userResults["pwdlastset"].GetValue<long>()).ToLocalTime();
-                if (lastSet.Year <= 1600)
-                {
-                    user.PasswordLastSet = "";
-                }
-                else
-                {
-                    user.PasswordLastSet = $"{ lastSet:MM/dd/yyyy h:mm tt} { (PasswordNeverExpires(userResults["userAccountControl"].GetValue<object>()) ? "" : $"({ lastSet.AddDays(90).Subtract(DateTime.Now).Days })") }";
-                }
-
+                user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults["pwdlastset"].GetValue<long>()).ToLocalTime();
+                user.PasswordNeverExpires = PasswordNeverExpires(userResults["userAccountControl"].GetValue<object>());
+                
                 output.Add(user);
             }
 
