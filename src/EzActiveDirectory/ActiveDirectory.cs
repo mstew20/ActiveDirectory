@@ -270,17 +270,17 @@ namespace EzActiveDirectory
                 PropertiesToLoad(search, new[] { "badPasswordTime", "badPwdCount", "lockouttime", "adsPath" });
 
                 SearchResult result = search.FindOne();
-                DateTime? badLogonTime = DateTime.FromFileTime((long)result.Properties["badPasswordTime"].Value());
-                var badLogonCount = Convert.ToInt32(result.Properties["badPwdCount"].Value().ToString());
+                DateTime? badLogonTime = DateTime.FromFileTime(result.Properties["badPasswordTime"].GetValue<long>());
+                var badLogonCount = result.Properties["badPwdCount"].GetValue<int>();
                 if (badLogonTime == DateTime.MinValue)
                 {
                     badLogonTime = null;
                 }
 
-                bool isLockedOut = Convert.ToBoolean(result.Properties["lockouttime"].Value());
+                bool isLockedOut = result.Properties["lockouttime"].GetValue<bool>();
                 if (isLockedOut || badLogonCount >= 6)
                 {
-                    UnlockADUser(result.Properties["adsPath"].Value().ToString());
+                    UnlockADUser(result.Properties["adsPath"].GetValue<string>());
                     isUnlocked = true;
                 }
 
