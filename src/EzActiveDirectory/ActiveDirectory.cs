@@ -392,6 +392,7 @@ namespace EzActiveDirectory
             {
                 List<string> props = new();
                 //props.Add("distinguishedname");
+                props.Add("displayname");
                 props.Add("name");
                 props.Add("adspath");
                 props.Add("employeeid");
@@ -431,7 +432,8 @@ namespace EzActiveDirectory
                 ActiveDirectoryUser user = new();
 
                 user.Path = userResults["adspath"].GetValue<string>();
-                user.DisplayName = userResults["name"].GetValue<string>();
+                user.DisplayName = userResults["displayname"].GetValue<string>();
+                user.FullName = userResults["name"].GetValue<string>();
                 user.EmployeeId = userResults["employeeid"].GetValue<string>();
                 user.IsLockedOut = userResults["lockouttime"].GetValue<bool>();
                 user.Email = userResults["mail"].GetValue<string>();
