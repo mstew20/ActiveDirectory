@@ -15,39 +15,6 @@ namespace EzActiveDirectory
         private const string LDAP_STRING = "LDAP://";
         private const string DC_STRING = "DC=";
 
-        private const string DISTINGUISHED_NAME_PROPERTY = "distinguishedName";
-        private const string FIRSTNAME_PROPERTY = "givenName";
-        private const string LASTNAME_PROPERTY = "sn";
-        private const string DISPLAYNAME_PROPERTY = "displayName";
-        private const string NAME_PROPERTY = "name";
-        private const string ADSPATH_PROPERTY = "adsPath";
-        private const string EMPLOYEEID_PROPERTY = "employeeID";
-        private const string LOCKOUTTIME_PROPERTY = "lockoutTime";
-        private const string MAIL_PROPERTY = "mail";
-        private const string USERNAME_PROPERTY = "sAMAccountName";
-        private const string STATE_PROPERTY = "st";
-        private const string CITY_PROPERTY = "l";
-        private const string OFFICE_LOCATION_PROPERTY = "physicalDeliveryOfficeName";
-        private const string CREATED_PROPERTY = "whenCreated";
-        private const string CHANGED_PROPERTY = "whenChanged";
-        private const string ADDRESS_PROPERTY = "streetAddress";
-        private const string JOB_TITLE_PROPERTY = "title";
-        private const string DEPARTMENT_PROPERTY = "department";
-        private const string PASSWORD_LAST_SET_PROPERTY = "pwdLastSet";
-        private const string ACCOUNT_EXPIRES_PROPERTY = "accountExpires";
-        private const string HOME_DIRECTORY_PROPERTY = "homeDirectory";
-        private const string NOTES_PROPERTY = "info";
-        private const string ACCOUNT_CONTROL_PROPERTY = "userAccountControl";
-        private const string MANAGER_PROPERTY = "manager";
-        private const string DIRECT_REPORTS_PROPERTY = "directReports";
-        private const string COMPANY_PROPERTY = "company";
-        private const string USER_PRINCIPAL_NAME_PROPERTY = "userPrincipalName";
-        private const string MIDDLE_NAME_PROPERTY = "middleName";
-        private const string GROUP_MEMBER_PROPERTY = "memberOf";
-        private const string BAD_PASSWORD_TIME_PROPERTY = "badPasswordTime";
-        private const string BAD_PASSOWRD_COUNT_PROPERTY = "badPwdCount";
-
-
         public string Domain { get; private set; }
         public string LdapPath { get; private set; }
 
@@ -156,7 +123,7 @@ namespace EzActiveDirectory
             using DirectoryEntry user = new(userPath);
             List<ActiveDirectoryGroup> groups = new();
 
-            foreach (var g in user.Properties[GROUP_MEMBER_PROPERTY])
+            foreach (var g in user.Properties[Property.GroupMember])
             {
                 var groupPath = g.ToString();
                 var groupName = groupPath.Substring(0, groupPath.IndexOf(","));
@@ -177,7 +144,7 @@ namespace EzActiveDirectory
             try
             {
                 using DirectoryEntry de = new(path);
-                de.Properties[LOCKOUTTIME_PROPERTY].Value = 0;
+                de.Properties[Property.LockOutTime].Value = 0;
                 de.CommitChanges();
                 output = true;
             }
@@ -197,7 +164,7 @@ namespace EzActiveDirectory
 
                 if (passwordMustChange)
                 {
-                    de.Properties[PASSWORD_LAST_SET_PROPERTY].Value = 0;
+                    de.Properties[Property.PasswordLastSet].Value = 0;
                 }
 
                 de.CommitChanges();
@@ -213,7 +180,7 @@ namespace EzActiveDirectory
         }
         public void ExpireAt(string userPath, DateTime date)
         {
-            SaveAdProperty(userPath, ACCOUNT_EXPIRES_PROPERTY, date.ToFileTime().ToString());
+            SaveAdProperty(userPath, Property.AccountExpires, date.ToFileTime().ToString());
         }
         public void NeverExpires(string userPath)
         {
@@ -299,24 +266,24 @@ namespace EzActiveDirectory
                     SearchScope = SearchScope.Subtree,
                     Filter = $"(&(objectClass=user)(objectCategory=person) { filter })"
                 };
-                PropertiesToLoad(search, new[] { BAD_PASSWORD_TIME_PROPERTY, BAD_PASSOWRD_COUNT_PROPERTY, LOCKOUTTIME_PROPERTY, ADSPATH_PROPERTY });
+                PropertiesToLoad(search, new[] { Property.BadPasswordTime, Property.BadPasswordCount, Property.LockOutTime, Property.AdsPath });
 
                 SearchResult result = search.FindOne();
-                DateTime? badLogonTime = DateTime.FromFileTime(result.Properties[BAD_PASSWORD_TIME_PROPERTY].GetValue<long>());
-                var badLogonCount = result.Properties[BAD_PASSOWRD_COUNT_PROPERTY].GetValue<int>();
+                DateTime? badLogonTime = DateTime.FromFileTime(result.Properties[Property.BadPasswordTime].GetValue<long>());
+                var badLogonCount = result.Properties[Property.BadPasswordCount].GetValue<int>();
                 if (badLogonTime?.Year <= 1600)
                 {
                     badLogonTime = null;
                 }
 
-                bool isLockedOut = result.Properties[LOCKOUTTIME_PROPERTY].GetValue<bool>();
+                bool isLockedOut = result.Properties[Property.LockOutTime].GetValue<bool>();
                 if (isLockedOut || badLogonCount >= 6)
                 {
-                    UnlockADUser(result.Properties[ADSPATH_PROPERTY].GetValue<string>());
+                    UnlockADUser(result.Properties[Property.AdsPath].GetValue<string>());
                     isUnlocked = true;
                 }
 
-                var server = result.Properties[ADSPATH_PROPERTY].GetValue<string>()
+                var server = result.Properties[Property.AdsPath].GetValue<string>()
                     .Replace(LDAP_STRING, "")
                     .Split('/')[0]
                     .Replace($".{Domain}", "");
@@ -395,16 +362,16 @@ namespace EzActiveDirectory
             StringBuilder sb = new();
 
             if (!string.IsNullOrWhiteSpace(firstName))
-                sb.Append($"({FIRSTNAME_PROPERTY}={ firstName }*)");
+                sb.Append($"({Property.FirstName}={ firstName }*)");
 
             if (!string.IsNullOrWhiteSpace(lastName))
-                sb.Append($"({LASTNAME_PROPERTY}={ lastName }*)");
+                sb.Append($"({Property.LastName}={ lastName }*)");
 
             if (!string.IsNullOrWhiteSpace(empId))
-                sb.Append($"({EMPLOYEEID_PROPERTY}={ empId }*)");
+                sb.Append($"({Property.EmployeeId}={ empId }*)");
 
             if (!string.IsNullOrWhiteSpace(userName))
-                sb.Append($"({USERNAME_PROPERTY}={ userName })");
+                sb.Append($"({Property.Username}={ userName })");
 
             return sb.ToString();
         }
@@ -426,27 +393,27 @@ namespace EzActiveDirectory
             {
                 List<string> props = new();
                 //props.Add("distinguishedname");
-                props.Add(DISPLAYNAME_PROPERTY);
-                props.Add(NAME_PROPERTY);
-                props.Add(ADSPATH_PROPERTY);
-                props.Add(EMPLOYEEID_PROPERTY);
-                props.Add(LOCKOUTTIME_PROPERTY);
-                props.Add(MAIL_PROPERTY);
-                props.Add(USERNAME_PROPERTY);
-                props.Add(STATE_PROPERTY);
-                props.Add(CITY_PROPERTY);
-                props.Add(OFFICE_LOCATION_PROPERTY);
-                props.Add(CREATED_PROPERTY);
-                props.Add(CHANGED_PROPERTY);
-                props.Add(ADDRESS_PROPERTY);
-                props.Add(JOB_TITLE_PROPERTY);
-                props.Add(DEPARTMENT_PROPERTY);
-                props.Add(PASSWORD_LAST_SET_PROPERTY);
-                props.Add(ACCOUNT_EXPIRES_PROPERTY);
-                props.Add(HOME_DIRECTORY_PROPERTY);
-                props.Add(NOTES_PROPERTY);
-                props.Add(ACCOUNT_CONTROL_PROPERTY);
-                props.Add(MANAGER_PROPERTY);
+                props.Add(Property.DisplayName);
+                props.Add(Property.Name);
+                props.Add(Property.AdsPath);
+                props.Add(Property.EmployeeId);
+                props.Add(Property.LockOutTime);
+                props.Add(Property.Mail);
+                props.Add(Property.Username);
+                props.Add(Property.State);
+                props.Add(Property.City);
+                props.Add(Property.OfficeLocation);
+                props.Add(Property.Created);
+                props.Add(Property.Changed);
+                props.Add(Property.Address);
+                props.Add(Property.JobTitle);
+                props.Add(Property.Department);
+                props.Add(Property.PasswordLastSet);
+                props.Add(Property.AccountExpires);
+                props.Add(Property.HomeDirectory);
+                props.Add(Property.Notes);
+                props.Add(Property.AccountControl);
+                props.Add(Property.Manager);
                 de.PropertiesToLoad.AddRange(props.ToArray());
             }
             else
@@ -465,29 +432,29 @@ namespace EzActiveDirectory
             {
                 ActiveDirectoryUser user = new();
 
-                user.Path = userResults[ADSPATH_PROPERTY].GetValue<string>();
-                user.DisplayName = userResults[DISPLAYNAME_PROPERTY].GetValue<string>();
-                user.FullName = userResults[NAME_PROPERTY].GetValue<string>();
-                user.EmployeeId = userResults[EMPLOYEEID_PROPERTY].GetValue<string>();
-                user.IsLockedOut = userResults[LOCKOUTTIME_PROPERTY].GetValue<bool>();
-                user.Email = userResults[MAIL_PROPERTY].GetValue<string>();
-                user.UserName = userResults[USERNAME_PROPERTY].GetValue<string>();
-                user.Notes = userResults[NOTES_PROPERTY].GetValue<string>();
-                user.HomeDirectory = userResults[HOME_DIRECTORY_PROPERTY].GetValue<string>();
-                user.State = userResults[STATE_PROPERTY].GetValue<string>();
-                user.City = userResults[CITY_PROPERTY].GetValue<string>();
-                user.Office = userResults[OFFICE_LOCATION_PROPERTY].GetValue<string>();
-                user.DateCreated = userResults[CREATED_PROPERTY].GetValue<DateTime>();
-                user.DateModified = userResults[CHANGED_PROPERTY].GetValue<DateTime>();
-                user.StreetAddress = userResults[ADDRESS_PROPERTY].GetValue<string>();
-                user.JobTitle = userResults[JOB_TITLE_PROPERTY].GetValue<string>();
-                user.Department = userResults[DEPARTMENT_PROPERTY].GetValue<string>();
-                user.IsExpired = IsExpired(userResults[ACCOUNT_EXPIRES_PROPERTY].GetValue<object>());
-                user.IsActive = IsActive(userResults[ACCOUNT_CONTROL_PROPERTY].GetValue<object>());
-                var cnManager = userResults[MANAGER_PROPERTY].GetValue<string>();
+                user.Path = userResults[Property.AdsPath].GetValue<string>();
+                user.DisplayName = userResults[Property.DisplayName].GetValue<string>();
+                user.FullName = userResults[Property.Name].GetValue<string>();
+                user.EmployeeId = userResults[Property.EmployeeId].GetValue<string>();
+                user.IsLockedOut = userResults[Property.LockOutTime].GetValue<bool>();
+                user.Email = userResults[Property.Mail].GetValue<string>();
+                user.UserName = userResults[Property.Username].GetValue<string>();
+                user.Notes = userResults[Property.Notes].GetValue<string>();
+                user.HomeDirectory = userResults[Property.HomeDirectory].GetValue<string>();
+                user.State = userResults[Property.State].GetValue<string>();
+                user.City = userResults[Property.City].GetValue<string>();
+                user.Office = userResults[Property.OfficeLocation].GetValue<string>();
+                user.DateCreated = userResults[Property.Created].GetValue<DateTime>();
+                user.DateModified = userResults[Property.Changed].GetValue<DateTime>();
+                user.StreetAddress = userResults[Property.Address].GetValue<string>();
+                user.JobTitle = userResults[Property.JobTitle].GetValue<string>();
+                user.Department = userResults[Property.Department].GetValue<string>();
+                user.IsExpired = IsExpired(userResults[Property.AccountExpires].GetValue<object>());
+                user.IsActive = IsActive(userResults[Property.AccountControl].GetValue<object>());
+                var cnManager = userResults[Property.Manager].GetValue<string>();
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
-                user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults[PASSWORD_LAST_SET_PROPERTY].GetValue<long>()).ToLocalTime();
-                user.PasswordNeverExpires = PasswordNeverExpires(userResults[ACCOUNT_CONTROL_PROPERTY].GetValue<object>());
+                user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults[Property.PasswordLastSet].GetValue<long>()).ToLocalTime();
+                user.PasswordNeverExpires = PasswordNeverExpires(userResults[Property.AccountControl].GetValue<object>());
 
                 output.Add(user);
             }
