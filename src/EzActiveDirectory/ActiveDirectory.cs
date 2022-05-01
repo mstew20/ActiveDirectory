@@ -377,15 +377,16 @@ namespace EzActiveDirectory
         }
         private bool IsActive(object directoryObject)
         {
-            int flags = (int)directoryObject;
-
-            return !Convert.ToBoolean(flags & 0x0002);
+            return !CheckAccountWithFlag(directoryObject, AccountFlags.Active);
         }
         private bool PasswordNeverExpires(object directoryObject)
         {
+            return CheckAccountWithFlag(directoryObject, AccountFlags.PasswordNeverExpires);
+        }
+        private bool CheckAccountWithFlag(object directoryObject, int flag)
+        {
             int flags = (int)directoryObject;
-
-            return Convert.ToBoolean(flags & 0x10000);
+            return Convert.ToBoolean(flags & flag);
         }
         private void PropertiesToLoad(DirectorySearcher de, string[] properties)
         {
