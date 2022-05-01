@@ -39,15 +39,15 @@ namespace EzActiveDirectory
         }
 
         //  Public AD Methods
-        public List<ActiveDirectoryUser> GetADUsers(string firstName, string lastName, string empId, string userName)
+        public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName)
         {
-            var users = GetADUsersList(firstName, lastName, empId, $"{ userName }*");
-            var output = ConvertToAdUser(users);
+            var users = GetUsersList(firstName, lastName, empId, $"{ userName }*");
+            var output = ConvertToActiveDirectoryUser(users);
 
             return output;
         }
         // This may need to take an object value instead of string.
-        public void SaveAdProperty(string path, string propertyName, string value)
+        public void SaveProperty(string path, string propertyName, string value)
         {
             using DirectoryEntry user = new(path);
             if (string.IsNullOrWhiteSpace(value))
@@ -137,7 +137,7 @@ namespace EzActiveDirectory
             groups = groups.OrderBy(x => x.Name).ToList();
             return groups;
         }
-        public bool UnlockADUser(string path)
+        public bool UnlockUser(string path)
         {
             var output = false;
 
@@ -180,7 +180,7 @@ namespace EzActiveDirectory
         }
         public void ExpireAt(string userPath, DateTime date)
         {
-            SaveAdProperty(userPath, Property.AccountExpires, date.ToFileTime().ToString());
+            SaveProperty(userPath, Property.AccountExpires, date.ToFileTime().ToString());
         }
         public void NeverExpires(string userPath)
         {
@@ -205,7 +205,7 @@ namespace EzActiveDirectory
 
             return output;
         }
-        public async Task<IEnumerable<UnlockUserModel>> ADUnlockToolParallelAsync(ActiveDirectoryUser user)
+        public async Task<IEnumerable<UnlockUserModel>> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user)
         {
             List<Task> tasks = new();
             var domains = GetDomains();
@@ -279,7 +279,7 @@ namespace EzActiveDirectory
                 bool isLockedOut = result.Properties[Property.LockOutTime].GetValue<bool>();
                 if (isLockedOut || badLogonCount >= 6)
                 {
-                    UnlockADUser(result.Properties[Property.AdsPath].GetValue<string>());
+                    UnlockUser(result.Properties[Property.AdsPath].GetValue<string>());
                     isUnlocked = true;
                 }
 
@@ -304,7 +304,7 @@ namespace EzActiveDirectory
         }
 
         //  Private AD Methods
-        private List<Dictionary<string, ResultPropertyValueCollection>> GetADUsersList(string firstName, string lastName, string empId, string userName, params string[] propertiesToLoad)
+        private List<Dictionary<string, ResultPropertyValueCollection>> GetUsersList(string firstName, string lastName, string empId, string userName, params string[] propertiesToLoad)
         {
             //List<ADUser> users = new List<ADUser>();
             List<Dictionary<string, ResultPropertyValueCollection>> output = new();
@@ -424,7 +424,7 @@ namespace EzActiveDirectory
                 }
             }
         }
-        private List<ActiveDirectoryUser> ConvertToAdUser(List<Dictionary<string, ResultPropertyValueCollection>> users)
+        private List<ActiveDirectoryUser> ConvertToActiveDirectoryUser(List<Dictionary<string, ResultPropertyValueCollection>> users)
         {
             List<ActiveDirectoryUser> output = new();
 
