@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace EzActiveDirectory;
-public class Property
+public static class Property
 {
     public const string AccountControl = "userAccountControl";
     public const string AccountExpires = "accountExpires";
