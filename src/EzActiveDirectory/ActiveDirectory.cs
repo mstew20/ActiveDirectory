@@ -333,15 +333,15 @@ namespace EzActiveDirectory
 
             return output;
         }
-        private bool IsExpired(object value)
+        private bool IsExpired(long fileTime)
         {
             bool output = false;
 
-            if (Convert.ToBoolean(value))
+            if (fileTime != 0)
             {
                 try
                 {
-                    var date = DateTime.FromFileTime((long)value);
+                    var date = DateTime.FromFileTime(fileTime);
                     var today = DateTime.Now;
 
                     if (date < today)
@@ -446,7 +446,7 @@ namespace EzActiveDirectory
                 user.StreetAddress = userResults[Property.Address].GetValue<string>();
                 user.JobTitle = userResults[Property.JobTitle].GetValue<string>();
                 user.Department = userResults[Property.Department].GetValue<string>();
-                user.IsExpired = IsExpired(userResults[Property.AccountExpires].GetValue<object>());
+                user.IsExpired = IsExpired(userResults[Property.AccountExpires].GetValue<long>());
                 user.IsActive = IsActive(userResults[Property.AccountControl].GetValue<object>());
                 var cnManager = userResults[Property.Manager].GetValue<string>();
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
