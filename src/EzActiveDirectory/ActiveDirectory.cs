@@ -337,19 +337,15 @@ namespace EzActiveDirectory
         {
             bool output = false;
 
-            if (fileTime != 0)
+            if (fileTime != 0 && fileTime < long.MaxValue)
             {
-                try
-                {
-                    var date = DateTime.FromFileTime(fileTime);
-                    var today = DateTime.Now;
+                var date = DateTime.FromFileTime(fileTime);
+                var today = DateTime.Now;
 
-                    if (date < today)
-                    {
-                        output = true;
-                    }
+                if (date < today)
+                {
+                    output = true;
                 }
-                catch (Exception) { }
             }
 
             return output;
