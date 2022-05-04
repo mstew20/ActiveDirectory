@@ -339,21 +339,15 @@ namespace EzActiveDirectory
         private bool IsExpired(long fileTime)
         {
             bool output = false;
-            if (fileTime != 0)
-            {
-                try
-                {
-                    var date = DateTime.FromFileTime(fileTime);
-                    var today = DateTime.Now;
 
-                    if (date < today)
-                    {
-                        output = true;
-                    }
-                }
-                catch (Exception)
+            if (fileTime != 0 && fileTime < long.MaxValue)
+            {
+                var date = DateTime.FromFileTime(fileTime);
+                var today = DateTime.Now;
+
+                if (date < today)
                 {
-                    // fileTime is larger than maxvalue
+                    output = true;
                 }
             }
 
