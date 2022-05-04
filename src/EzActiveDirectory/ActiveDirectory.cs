@@ -341,12 +341,19 @@ namespace EzActiveDirectory
             bool output = false;
             if (fileTime != 0)
             {
-                var date = DateTime.FromFileTime(fileTime);
-                var today = DateTime.Now;
-
-                if (date < today)
+                try
                 {
-                    output = true;
+                    var date = DateTime.FromFileTime(fileTime);
+                    var today = DateTime.Now;
+
+                    if (date < today)
+                    {
+                        output = true;
+                    }
+                }
+                catch (Exception)
+                {
+                    // fileTime is larger than maxvalue
                 }
             }
 
