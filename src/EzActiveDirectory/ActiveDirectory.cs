@@ -15,6 +15,8 @@ namespace EzActiveDirectory
         private const string LDAP_STRING = "LDAP://";
         private const string DC_STRING = "DC=";
 
+        private UserCredentials _credentials;
+
         public string Domain { get; private set; }
         public string LdapPath { get; private set; }
 
@@ -36,6 +38,10 @@ namespace EzActiveDirectory
         {
             LdapPath = ldap;
             SetDomainFromLdap();
+        }
+        public void ChangeCredentials(UserCredentials creds)
+        {
+            _credentials = creds;
         }
 
         //  Public AD Methods
@@ -479,12 +485,18 @@ namespace EzActiveDirectory
         }
         private DirectoryEntry GetDirectoryEntry(string path, UserCredentials credentials = null)
         {
-            if (credentials == null || (string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
+            if (credentials is not null || !(string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
             {
-                return new(path);
+                return new(path, credentials.UsernameWithDomain, credentials.Password);
+                
             }
 
-            return new(path, credentials.UsernameWithDomain, credentials.Password);
+            if (_credentials is not null || !(string.IsNullOrWhiteSpace(_credentials.Username) && string.IsNullOrWhiteSpace(_credentials.Password)))
+            {
+                return new(path, _credentials.UsernameWithDomain, _credentials.Password);
+            }
+
+            return new(path);
         }
     }
 }
