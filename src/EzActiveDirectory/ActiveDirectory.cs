@@ -123,7 +123,7 @@ namespace EzActiveDirectory
 
             return groups;
         }
-        public List<ActiveDirectoryGroup> GetUserGroups(string userPath, UserCredentials credentials)
+        public List<ActiveDirectoryGroup> GetUserGroups(string userPath, UserCredentials credentials = null)
         {
             using var user = GetDirectoryEntry(userPath, credentials);
             List<ActiveDirectoryGroup> groups = new();
