@@ -479,7 +479,7 @@ namespace EzActiveDirectory
         }
         private DirectoryEntry GetDirectoryEntry(string path, UserCredentials credentials = null)
         {
-            if (credentials == null)
+            if (credentials == null || (string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
             {
                 return new(path);
             }
