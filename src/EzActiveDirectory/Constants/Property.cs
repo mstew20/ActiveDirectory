@@ -37,4 +37,5 @@ public class Property
     public const string State = "st";
     public const string Username = "sAMAccountName";
     public const string UserPrincipalName = "userPrincipalName";
+    public const string PasswordExpireDate = "msDS-UserPasswordExpiryTimeComputed";
 }
