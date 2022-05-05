@@ -413,6 +413,7 @@ namespace EzActiveDirectory
                 props.Add(Property.Notes);
                 props.Add(Property.AccountControl);
                 props.Add(Property.Manager);
+                props.Add(Property.PasswordExpireDate);
                 de.PropertiesToLoad.AddRange(props.ToArray());
             }
             else
@@ -454,6 +455,7 @@ namespace EzActiveDirectory
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
                 user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults[Property.PasswordLastSet].GetValue<long>()).ToLocalTime();
                 user.PasswordNeverExpires = PasswordNeverExpires(userResults[Property.AccountControl].GetValue<object>());
+                user.PasswordExpiryDate = userResults[Property.PasswordExpireDate].GetValue(x => DateTime.FromFileTime((long)x));
 
                 output.Add(user);
             }
