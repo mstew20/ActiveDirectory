@@ -485,13 +485,12 @@ namespace EzActiveDirectory
         }
         private DirectoryEntry GetDirectoryEntry(string path, UserCredentials credentials = null)
         {
-            if (credentials is not null || !(string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
+            if (credentials is not null && !(string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
             {
-                return new(path, credentials.UsernameWithDomain, credentials.Password);
-                
+                return new(path, credentials.UsernameWithDomain, credentials.Password);                
             }
 
-            if (_credentials is not null || !(string.IsNullOrWhiteSpace(_credentials.Username) && string.IsNullOrWhiteSpace(_credentials.Password)))
+            if (_credentials is not null && !(string.IsNullOrWhiteSpace(_credentials.Username) && string.IsNullOrWhiteSpace(_credentials.Password)))
             {
                 return new(path, _credentials.UsernameWithDomain, _credentials.Password);
             }
