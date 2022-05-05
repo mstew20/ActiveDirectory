@@ -15,6 +15,8 @@ namespace EzActiveDirectory
         private const string LDAP_STRING = "LDAP://";
         private const string DC_STRING = "DC=";
 
+        private UserCredentials _credentials;
+
         public string Domain { get; private set; }
         public string LdapPath { get; private set; }
 
@@ -37,19 +39,23 @@ namespace EzActiveDirectory
             LdapPath = ldap;
             SetDomainFromLdap();
         }
+        public void ChangeCredentials(UserCredentials creds)
+        {
+            _credentials = creds;
+        }
 
         //  Public AD Methods
-        public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName)
+        public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null)
         {
-            var users = GetUsersList(firstName, lastName, empId, $"{ userName }*");
+            var users = GetUsersList(firstName, lastName, empId, $"{ userName }*", credentials);
             var output = ConvertToActiveDirectoryUser(users);
 
             return output;
         }
         // This may need to take an object value instead of string.
-        public void SaveProperty(string path, string propertyName, string value)
+        public void SaveProperty(string path, string propertyName, string value, UserCredentials credentials = null)
         {
-            using DirectoryEntry user = new(path);
+            using DirectoryEntry user = GetDirectoryEntry(path, credentials);
             if (string.IsNullOrWhiteSpace(value))
             {
                 user.Properties[propertyName]?.RemoveAt(0);
@@ -62,12 +68,11 @@ namespace EzActiveDirectory
             user.CommitChanges();
             user.Close();
         }
-        public bool RemoveGroup(string userPath, string groupPath)
+        public bool RemoveGroup(string userPath, string groupPath, UserCredentials credentials = null)
         {
-            using DirectoryEntry user = new(userPath);
             try
             {
-                using DirectoryEntry deGroup = new(groupPath, null, null);
+                using DirectoryEntry deGroup = GetDirectoryEntry(groupPath, credentials);
                 deGroup.Invoke("Remove", new object[] { userPath });
                 deGroup.CommitChanges();
             }
@@ -78,11 +83,11 @@ namespace EzActiveDirectory
 
             return true;
         }
-        public bool AddGroup(string userPath, string groupPath)
+        public bool AddGroup(string userPath, string groupPath, UserCredentials credentials = null)
         {
             try
             {
-                using DirectoryEntry deGroup = new(groupPath, null, null);
+                using DirectoryEntry deGroup = GetDirectoryEntry(groupPath, credentials);
                 deGroup.Invoke("Add", new object[] { userPath });
                 deGroup.CommitChanges();
             }
@@ -118,11 +123,10 @@ namespace EzActiveDirectory
 
             return groups;
         }
-        public List<ActiveDirectoryGroup> GetUserGroups(string userPath)
+        public List<ActiveDirectoryGroup> GetUserGroups(string userPath, UserCredentials credentials = null)
         {
-            using DirectoryEntry user = new(userPath);
+            using var user = GetDirectoryEntry(userPath, credentials);
             List<ActiveDirectoryGroup> groups = new();
-
             foreach (var g in user.Properties[Property.GroupMember])
             {
                 var groupPath = g.ToString();
@@ -188,9 +192,9 @@ namespace EzActiveDirectory
         }
 
         //  Unlock Tool related methods
-        public List<string> GetDomains()
+        public List<string> GetDomains(UserCredentials credentials = null)
         {
-            using DirectoryEntry de = new(LdapPath);
+            using DirectoryEntry de = GetDirectoryEntry(LdapPath, credentials);
             string filter = "(&(objectCategory=computer) (| (primaryGroupID=516) (primaryGroupID=521)))";
             using DirectorySearcher searcher = new(de, filter);
             var results = searcher.FindAll();
@@ -251,13 +255,13 @@ namespace EzActiveDirectory
 
             return output;
         }
-        public UnlockUserModel CheckUserDomain(string domain, string userName)
+        public UnlockUserModel CheckUserDomain(string domain, string userName, UserCredentials credentials = null)
         {
             string message = "";
             bool isUnlocked = false;
             try
             {
-                using DirectoryEntry de = new($"{LDAP_STRING}{domain}");
+                using DirectoryEntry de = GetDirectoryEntry($"{LDAP_STRING}{domain}", credentials);
                 var filter = SearchFilter("", "", "", userName);
 
                 using DirectorySearcher search = new(de)
@@ -304,35 +308,34 @@ namespace EzActiveDirectory
         }
 
         //  Private AD Methods
-        private List<Dictionary<string, ResultPropertyValueCollection>> GetUsersList(string firstName, string lastName, string empId, string userName, params string[] propertiesToLoad)
+        private List<Dictionary<string, ResultPropertyValueCollection>> GetUsersList(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null, params string[] propertiesToLoad)
         {
             //List<ADUser> users = new List<ADUser>();
             List<Dictionary<string, ResultPropertyValueCollection>> output = new();
-            using (DirectoryEntry de = new(LdapPath))
+            using var de = GetDirectoryEntry(LdapPath, credentials);
+            var filter = SearchFilter(firstName, lastName, empId, userName);
+
+            using DirectorySearcher search = new(de)
             {
-                var filter = SearchFilter(firstName, lastName, empId, userName);
+                PageSize = 1000,
+                SearchScope = SearchScope.Subtree,
+                Filter = $"(&(objectClass=user)(objectCategory=person) { filter })"
+            };
+            PropertiesToLoad(search, propertiesToLoad);
 
-                using DirectorySearcher search = new(de)
+            using SearchResultCollection result = search.FindAll();
+            foreach (SearchResult r in result)
+            {
+                Dictionary<string, ResultPropertyValueCollection> tempDict = new();
+
+                foreach (var p in search.PropertiesToLoad)
                 {
-                    PageSize = 1000,
-                    SearchScope = SearchScope.Subtree,
-                    Filter = $"(&(objectClass=user)(objectCategory=person) { filter })"
-                };
-                PropertiesToLoad(search, propertiesToLoad);
-
-                using SearchResultCollection result = search.FindAll();
-                foreach (SearchResult r in result)
-                {
-                    Dictionary<string, ResultPropertyValueCollection> tempDict = new();
-
-                    foreach (var p in search.PropertiesToLoad)
-                    {
-                        tempDict.Add(p, r.Properties[p]);
-                    }
-
-                    output.Add(tempDict);
+                    tempDict.Add(p, r.Properties[p]);
                 }
+
+                output.Add(tempDict);
             }
+
 
             return output;
         }
@@ -479,6 +482,20 @@ namespace EzActiveDirectory
                 .Replace("/", "")
                 .Replace(",", ".");
             Domain = domain;
+        }
+        private DirectoryEntry GetDirectoryEntry(string path, UserCredentials credentials = null)
+        {
+            if (credentials is not null && !(string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
+            {
+                return new(path, credentials.UsernameWithDomain, credentials.Password);                
+            }
+
+            if (_credentials is not null && !(string.IsNullOrWhiteSpace(_credentials.Username) && string.IsNullOrWhiteSpace(_credentials.Password)))
+            {
+                return new(path, _credentials.UsernameWithDomain, _credentials.Password);
+            }
+
+            return new(path);
         }
     }
 }
