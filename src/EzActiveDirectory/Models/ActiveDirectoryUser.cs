@@ -38,6 +38,6 @@ namespace EzActiveDirectory.Models
         public string Notes { get; set; }
         public string Manager { get; set; }
         public bool IsActive { get; set; }
-        public bool PasswordNeverExpires { get; internal set; }
+        public bool PasswordNeverExpires { get; set; }
     }
 }

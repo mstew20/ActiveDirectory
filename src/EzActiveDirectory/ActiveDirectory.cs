@@ -455,7 +455,10 @@ namespace EzActiveDirectory
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
                 user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults[Property.PasswordLastSet].GetValue<long>()).ToLocalTime();
                 user.PasswordNeverExpires = PasswordNeverExpires(userResults[Property.AccountControl].GetValue<object>());
-                user.PasswordExpiryDate = userResults[Property.PasswordExpireDate].GetValue(x => DateTime.FromFileTime((long)x));
+                if (!user.PasswordNeverExpires)
+                {
+                    user.PasswordExpiryDate = userResults[Property.PasswordExpireDate].GetValue(x => DateTime.FromFileTime((long)x));
+                }
 
                 output.Add(user);
             }
@@ -489,7 +492,7 @@ namespace EzActiveDirectory
         {
             if (credentials is not null && !(string.IsNullOrWhiteSpace(credentials.Username) && string.IsNullOrWhiteSpace(credentials.Password)))
             {
-                return new(path, credentials.UsernameWithDomain, credentials.Password);                
+                return new(path, credentials.UsernameWithDomain, credentials.Password);
             }
 
             if (_credentials is not null && !(string.IsNullOrWhiteSpace(_credentials.Username) && string.IsNullOrWhiteSpace(_credentials.Password)))
