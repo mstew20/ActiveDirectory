@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.DirectoryServices;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -98,10 +99,10 @@ namespace EzActiveDirectory
 
             return true;
         }
-        public List<ActiveDirectoryGroup> FindGroup(string groupName)
+        public List<ActiveDirectoryGroup> FindGroup(string groupName, UserCredentials credentials = null)
         {
             List<ActiveDirectoryGroup> groups = new();
-            using DirectoryEntry de = new(LdapPath);
+            using DirectoryEntry de = GetDirectoryEntry(LdapPath, credentials);
             try
             {
                 de.RefreshCache();
@@ -141,13 +142,13 @@ namespace EzActiveDirectory
             groups = groups.OrderBy(x => x.Name).ToList();
             return groups;
         }
-        public bool UnlockUser(string path)
+        public bool UnlockUser(string path, UserCredentials credentials = null)
         {
             var output = false;
 
             try
-            {
-                using DirectoryEntry de = new(path);
+{
+                using DirectoryEntry de = GetDirectoryEntry(path, credentials);
                 de.Properties[Property.LockOutTime].Value = 0;
                 de.CommitChanges();
                 output = true;
@@ -159,11 +160,11 @@ namespace EzActiveDirectory
 
             return output;
         }
-        public void ResetPassword(string path, string password, bool passwordMustChange)
+        public void ResetPassword(string path, string password, bool passwordMustChange, UserCredentials credentials = null)
         {
             try
             {
-                using DirectoryEntry de = new(path);
+                using DirectoryEntry de = GetDirectoryEntry(path, credentials);
                 de.Invoke("SetPassword", password);
 
                 if (passwordMustChange)
