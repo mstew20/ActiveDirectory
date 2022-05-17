@@ -453,7 +453,7 @@ namespace EzActiveDirectory
                 user.IsExpired = IsExpired(userResults[Property.AccountExpires].GetValue<long>());
                 user.IsActive = IsActive(userResults[Property.AccountControl].GetValue<object>());
                 var cnManager = userResults[Property.Manager].GetValue<string>();
-                user.Manager = cnManager?.Substring(3, cnManager.IndexOf(',') - 3);
+                user.Manager = cnManager?.Substring(3, cnManager.IndexOf(",OU") - 3).Replace("\\", "");
                 user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults[Property.PasswordLastSet].GetValue<long>()).ToLocalTime();
                 user.PasswordNeverExpires = PasswordNeverExpires(userResults[Property.AccountControl].GetValue<object>());
                 if (!user.PasswordNeverExpires)
