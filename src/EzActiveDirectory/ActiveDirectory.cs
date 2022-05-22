@@ -361,13 +361,10 @@ namespace EzActiveDirectory
             DateTime? date = null;
             if (fileTime != 0 && fileTime < long.MaxValue)
             {
-                if (fileTime == 1653092122)
+                date = DateTime.FromFileTime(fileTime);
+                if (date?.Year == 1600)
                 {
                     date = DateTime.Today;
-                }
-                else
-                {
-                    date = DateTime.FromFileTime(fileTime);
                 }
             }
 
