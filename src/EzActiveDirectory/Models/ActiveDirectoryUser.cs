@@ -15,6 +15,7 @@ namespace EzActiveDirectory.Models
         public DateTime DateCreated { get; set; }
         public DateTime DateModified { get; set; }
         public DateTime PasswordExpiryDate { get; set; }
+        public DateTime? AccountExpireDate { get; set; }
         public bool IsExpired { get; set; }
         public string State { get; set; }
         public string City { get; set; }

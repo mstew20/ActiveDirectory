@@ -48,7 +48,7 @@ namespace EzActiveDirectory
         //  Public AD Methods
         public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null)
         {
-            var users = GetUsersList(firstName, lastName, empId, $"{ userName }*", credentials);
+            var users = GetUsersList(firstName, lastName, empId, $"{userName}*", credentials);
             var output = ConvertToActiveDirectoryUser(users);
 
             return output;
@@ -147,7 +147,7 @@ namespace EzActiveDirectory
             var output = false;
 
             try
-{
+            {
                 using DirectoryEntry de = GetDirectoryEntry(path, credentials);
                 de.Properties[Property.LockOutTime].Value = 0;
                 de.CommitChanges();
@@ -269,7 +269,7 @@ namespace EzActiveDirectory
                 {
                     PageSize = 1000,
                     SearchScope = SearchScope.Subtree,
-                    Filter = $"(&(objectClass=user)(objectCategory=person) { filter })"
+                    Filter = $"(&(objectClass=user)(objectCategory=person) {filter})"
                 };
                 PropertiesToLoad(search, new[] { Property.BadPasswordTime, Property.BadPasswordCount, Property.LockOutTime, Property.AdsPath });
 
@@ -292,11 +292,11 @@ namespace EzActiveDirectory
                     .Replace(LDAP_STRING, "")
                     .Split('/')[0]
                     .Replace($".{Domain}", "");
-                message = $"{ server }: { badLogonCount } Failed last on { badLogonTime?.ToLocalTime().ToString("MM/dd/yyy h:mm tt") }";
+                message = $"{server}: {badLogonCount} Failed last on {badLogonTime?.ToLocalTime().ToString("MM/dd/yyy h:mm tt")}";
             }
             catch (Exception ex)
             {
-                message = $"Failed to connect to { domain }";
+                message = $"Failed to connect to {domain}";
             }
 
             UnlockUserModel userModel = new()
@@ -320,7 +320,7 @@ namespace EzActiveDirectory
             {
                 PageSize = 1000,
                 SearchScope = SearchScope.Subtree,
-                Filter = $"(&(objectClass=user)(objectCategory=person) { filter })"
+                Filter = $"(&(objectClass=user)(objectCategory=person) {filter})"
             };
             PropertiesToLoad(search, propertiesToLoad);
 
@@ -340,13 +340,12 @@ namespace EzActiveDirectory
 
             return output;
         }
-        private bool IsExpired(long fileTime)
+        private bool IsExpired(DateTime? date)
         {
             bool output = false;
 
-            if (fileTime != 0 && fileTime < long.MaxValue)
+            if (date is not null)
             {
-                var date = DateTime.FromFileTime(fileTime);
                 var today = DateTime.Now;
 
                 if (date < today)
@@ -357,21 +356,38 @@ namespace EzActiveDirectory
 
             return output;
         }
+        private DateTime? GetAccountExpireDate(long fileTime)
+        {
+            DateTime? date = null;
+            if (fileTime != 0 && fileTime < long.MaxValue)
+            {
+                if (fileTime == 1653092122)
+                {
+                    date = DateTime.Today;
+                }
+                else
+                {
+                    date = DateTime.FromFileTime(fileTime);
+                }
+            }
+
+            return date;
+        }
         private string SearchFilter(string firstName, string lastName, string empId, string userName)
         {
             StringBuilder sb = new();
 
             if (!string.IsNullOrWhiteSpace(firstName))
-                sb.Append($"({Property.FirstName}={ firstName }*)");
+                sb.Append($"({Property.FirstName}={firstName}*)");
 
             if (!string.IsNullOrWhiteSpace(lastName))
-                sb.Append($"({Property.LastName}={ lastName }*)");
+                sb.Append($"({Property.LastName}={lastName}*)");
 
             if (!string.IsNullOrWhiteSpace(empId))
-                sb.Append($"({Property.EmployeeId}={ empId }*)");
+                sb.Append($"({Property.EmployeeId}={empId}*)");
 
             if (!string.IsNullOrWhiteSpace(userName))
-                sb.Append($"({Property.Username}={ userName })");
+                sb.Append($"({Property.Username}={userName})");
 
             return sb.ToString();
         }
@@ -450,7 +466,8 @@ namespace EzActiveDirectory
                 user.StreetAddress = userResults[Property.Address].GetValue<string>();
                 user.JobTitle = userResults[Property.JobTitle].GetValue<string>();
                 user.Department = userResults[Property.Department].GetValue<string>();
-                user.IsExpired = IsExpired(userResults[Property.AccountExpires].GetValue<long>());
+                user.AccountExpireDate = GetAccountExpireDate(userResults[Property.AccountExpires].GetValue<long>());
+                user.IsExpired = IsExpired(user.AccountExpireDate);
                 user.IsActive = IsActive(userResults[Property.AccountControl].GetValue<object>());
                 var cnManager = userResults[Property.Manager].GetValue<string>();
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(",OU") - 3).Replace("\\", "");
@@ -466,6 +483,7 @@ namespace EzActiveDirectory
 
             return output;
         }
+
         private void SetLdapFromDomain()
         {
             StringBuilder sb = new();
