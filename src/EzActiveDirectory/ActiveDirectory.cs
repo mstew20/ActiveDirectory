@@ -59,7 +59,10 @@ namespace EzActiveDirectory
             using DirectoryEntry user = GetDirectoryEntry(path, credentials);
             if (string.IsNullOrWhiteSpace(value))
             {
-                user.Properties[propertyName]?.RemoveAt(0);
+                if (user.Properties[propertyName]?.Count > 0)
+                {
+                    user.Properties[propertyName]?.RemoveAt(0); 
+                }
             }
             else
             {
