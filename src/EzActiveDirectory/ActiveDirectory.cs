@@ -410,6 +410,7 @@ namespace EzActiveDirectory
                 List<string> props = new();
                 //props.Add("distinguishedname");
                 props.Add(Property.DisplayName);
+                props.Add(Property.CanonicalName);
                 props.Add(Property.Name);
                 props.Add(Property.AdsPath);
                 props.Add(Property.EmployeeId);
@@ -450,6 +451,7 @@ namespace EzActiveDirectory
                 ActiveDirectoryUser user = new();
 
                 user.Path = userResults[Property.AdsPath].GetValue<string>();
+                user.CanonicalName = userResults[Property.CanonicalName].GetValue<string>();
                 user.DisplayName = userResults[Property.DisplayName].GetValue<string>();
                 user.FullName = userResults[Property.Name].GetValue<string>();
                 user.EmployeeId = userResults[Property.EmployeeId].GetValue<string>();
