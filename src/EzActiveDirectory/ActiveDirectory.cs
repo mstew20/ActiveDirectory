@@ -28,7 +28,14 @@ namespace EzActiveDirectory
         {
             Domain = domain;
             LdapPath = ldap;
-            SetLdapFromDomain();
+            if (string.IsNullOrWhiteSpace(LdapPath))
+            {
+                SetLdapFromDomain();
+            }
+            else
+            {
+                SetDomainFromLdap();
+            }
         }
         public void ChangeDomain(string domain)
         {
@@ -61,7 +68,7 @@ namespace EzActiveDirectory
             {
                 if (user.Properties[propertyName]?.Count > 0)
                 {
-                    user.Properties[propertyName]?.RemoveAt(0); 
+                    user.Properties[propertyName]?.RemoveAt(0);
                 }
             }
             else
@@ -69,6 +76,13 @@ namespace EzActiveDirectory
                 user.Properties[propertyName].Value = value;
                 //user.InvokeSet(propertyName, value);
             }
+            user.CommitChanges();
+            user.Close();
+        }
+        public void SaveProperty<T>(string path, string propertyName, T value, UserCredentials credentials = null)
+        {
+            using DirectoryEntry user = GetDirectoryEntry(path, credentials);
+            user.Properties[propertyName].Value = value;
             user.CommitChanges();
             user.Close();
         }
@@ -119,7 +133,9 @@ namespace EzActiveDirectory
                     groups.Add(new()
                     {
                         Path = group.Path,
-                        Name = group.Properties["name"]?.Value().ToString()
+                        Name = group.Properties["name"]?.Value().ToString(),
+                        Description = group.Properties["description"].GetValue<string>(),
+                        Notes = group.Properties["info"].GetValue<string>()
                     });
                 }
             }
@@ -206,7 +222,11 @@ namespace EzActiveDirectory
             List<string> output = new();
             foreach (SearchResult domain in results)
             {
-                output.Add(domain.Properties["name"].Value().ToString());
+                StringBuilder sb = new();
+                sb.Append(domain.Properties["name"].Value().ToString());
+                sb.Append(".");
+                sb.Append(Domain);
+                output.Add(sb.ToString());
             }
 
             output.Sort();
@@ -503,7 +523,8 @@ namespace EzActiveDirectory
         }
         private void SetDomainFromLdap()
         {
-            var domain = LdapPath.Replace(LDAP_STRING, "")
+            var domain = LdapPath.Replace(LDAP_STRING, "");
+            domain = domain.Remove(0, domain.IndexOf('/'))
                 .Replace(DC_STRING, "")
                 .Replace("/", "")
                 .Replace(",", ".");
