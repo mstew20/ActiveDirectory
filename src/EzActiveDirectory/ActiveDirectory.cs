@@ -425,34 +425,36 @@ namespace EzActiveDirectory
         {
             if (properties == null || properties.Length == 0)
             {
-                List<string> props = new();
-                //props.Add("distinguishedname");
-                props.Add(Property.DisplayName);
-                props.Add(Property.CanonicalName);
-                props.Add(Property.Name);
-                props.Add(Property.FirstName);
-                props.Add(Property.LastName);
-                props.Add(Property.AdsPath);
-                props.Add(Property.EmployeeId);
-                props.Add(Property.LockOutTime);
-                props.Add(Property.Mail);
-                props.Add(Property.Username);
-                props.Add(Property.State);
-                props.Add(Property.City);
-                props.Add(Property.OfficeLocation);
-                props.Add(Property.Created);
-                props.Add(Property.Changed);
-                props.Add(Property.Address);
-                props.Add(Property.JobTitle);
-                props.Add(Property.Department);
-                props.Add(Property.PasswordLastSet);
-                props.Add(Property.AccountExpires);
-                props.Add(Property.HomeDirectory);
-                props.Add(Property.Notes);
-                props.Add(Property.AccountControl);
-                props.Add(Property.Manager);
-                props.Add(Property.PasswordExpireDate);
-                de.PropertiesToLoad.AddRange(props.ToArray());
+                string[] props = 
+                {
+                    //props.Add("distinguishedname");
+                    Property.DisplayName,
+                    Property.CanonicalName,
+                    Property.Name,
+                    Property.FirstName,
+                    Property.LastName,
+                    Property.AdsPath,
+                    Property.EmployeeId,
+                    Property.LockOutTime,
+                    Property.Mail,
+                    Property.Username,
+                    Property.State,
+                    Property.City,
+                    Property.OfficeLocation,
+                    Property.Created,
+                    Property.Changed,
+                    Property.Address,
+                    Property.JobTitle,
+                    Property.Department,
+                    Property.PasswordLastSet,
+                    Property.AccountExpires,
+                    Property.HomeDirectory,
+                    Property.Notes,
+                    Property.AccountControl,
+                    Property.Manager,
+                    Property.PasswordExpireDate
+                };
+                de.PropertiesToLoad.AddRange(props);
             }
             else
             {
