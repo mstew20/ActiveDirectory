@@ -251,33 +251,31 @@ namespace EzActiveDirectory
             await Task.WhenAll(tasks);
             return output;
         }
-        public List<string> GetAllLockedUsers()
+        public List<ActiveDirectoryUser> GetAllLockedUsers()
         {
-            ProcessStartInfo processStartInfo = new()
+            using DirectorySearcher searcher = new(GetDirectoryEntry(LdapPath))
             {
-                FileName = "powershell.exe",
-                Arguments = "& Search-ADAccount -LockedOut | Select Name",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                PageSize=1000,
+                SearchScope = SearchScope.Subtree,
+                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:=2)(!UserAccountControl:1.2.840.113556.1.4.803:=65536))"
             };
+            PropertiesToLoad(searcher, null);
 
-            using Process p = new();
-            p.StartInfo = processStartInfo;
-            p.Start();
-            var res = p.StandardOutput.ReadToEnd();
-            var usersResponse = res.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-            usersResponse.RemoveRange(0, 3);
-            usersResponse.RemoveRange(usersResponse.Count - 2, 2);
+            List<Dictionary<string, ResultPropertyValueCollection>> dict = new();
 
-            List<string> output = new();
-            foreach (var x in usersResponse)
+            foreach (SearchResult user in searcher.FindAll())
             {
-                var r = x.Trim();
-                output.Add(r);
+                Dictionary<string, ResultPropertyValueCollection> tempDict = new();
+
+                foreach (var p in searcher.PropertiesToLoad)
+                {
+                    tempDict.Add(p, user.Properties[p]);
+                }
+                dict.Add(tempDict);
             }
 
-            return output;
+            var users = ConvertToActiveDirectoryUser(dict);
+            return users;
         }
         public UnlockUserModel CheckUserDomain(string domain, string userName, UserCredentials credentials = null)
         {
@@ -432,6 +430,8 @@ namespace EzActiveDirectory
                 props.Add(Property.DisplayName);
                 props.Add(Property.CanonicalName);
                 props.Add(Property.Name);
+                props.Add(Property.FirstName);
+                props.Add(Property.LastName);
                 props.Add(Property.AdsPath);
                 props.Add(Property.EmployeeId);
                 props.Add(Property.LockOutTime);
@@ -474,6 +474,8 @@ namespace EzActiveDirectory
                 user.CanonicalName = userResults[Property.CanonicalName].GetValue<string>();
                 user.DisplayName = userResults[Property.DisplayName].GetValue<string>();
                 user.FullName = userResults[Property.Name].GetValue<string>();
+                user.FirstName = userResults[Property.FirstName].GetValue<string>();
+                user.LastName = userResults[Property.LastName].GetValue<string>();
                 user.EmployeeId = userResults[Property.EmployeeId].GetValue<string>();
                 user.IsLockedOut = userResults[Property.LockOutTime].GetValue<bool>();
                 user.Email = userResults[Property.Mail].GetValue<string>();
