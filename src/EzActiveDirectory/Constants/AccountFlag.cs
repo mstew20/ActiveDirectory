@@ -7,7 +7,7 @@ namespace EzActiveDirectory;
 public enum AccountFlag
 {
     Script = 0x0001,
-    Disabled = 0x0002,
+    Disable = 0x0002,
     HomeDirectoryRequired = 0x0008,
     Lockout = 0x0010,
     PasswordNotRequired = 0x0020,

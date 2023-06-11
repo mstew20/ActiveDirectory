@@ -193,7 +193,7 @@ namespace EzActiveDirectory
 
                 de.CommitChanges();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -315,7 +315,7 @@ namespace EzActiveDirectory
                     .Replace($".{Domain}", "");
                 message = $"{server}: {badLogonCount} Failed last on {badLogonTime?.ToLocalTime().ToString("MM/dd/yyy h:mm tt")}";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 message = $"Failed to connect to {domain}";
             }
@@ -411,7 +411,7 @@ namespace EzActiveDirectory
         }
         private bool IsActive(object directoryObject)
         {
-            return !CheckAccountWithFlag(directoryObject, AccountFlag.Disabled);
+            return !CheckAccountWithFlag(directoryObject, AccountFlag.Disable);
         }
         private bool PasswordNeverExpires(object directoryObject)
         {
