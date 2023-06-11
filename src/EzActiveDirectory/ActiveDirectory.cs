@@ -411,16 +411,16 @@ namespace EzActiveDirectory
         }
         private bool IsActive(object directoryObject)
         {
-            return !CheckAccountWithFlag(directoryObject, AccountFlags.Active);
+            return !CheckAccountWithFlag(directoryObject, AccountFlag.Disabled);
         }
         private bool PasswordNeverExpires(object directoryObject)
         {
-            return CheckAccountWithFlag(directoryObject, AccountFlags.PasswordNeverExpires);
+            return CheckAccountWithFlag(directoryObject, AccountFlag.PasswordNeverExpires);
         }
-        private bool CheckAccountWithFlag(object directoryObject, int flag)
+        private bool CheckAccountWithFlag(object directoryObject, AccountFlag flag)
         {
             int flags = (int)directoryObject;
-            return Convert.ToBoolean(flags & flag);
+            return Convert.ToBoolean(flags & (int)flag);
         }
         private void PropertiesToLoad(DirectorySearcher de, string[] properties)
         {
