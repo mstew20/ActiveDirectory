@@ -18,7 +18,7 @@ public enum AccountFlag
     InterDomainTrust = 0x0800,
     WorkstationTrust = 0x1000,
     ServerTrust = 0x2000,
-    PasswordNeverExpires = 0x10000,
+    DontExpirePassword = 0x10000,
     MNSLogon = 0x20000,
     SmartCardRequired = 0x40000,
     TrustedForDelegation = 0x80000,
