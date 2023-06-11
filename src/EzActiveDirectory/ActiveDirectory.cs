@@ -257,7 +257,7 @@ namespace EzActiveDirectory
             {
                 PageSize=1000,
                 SearchScope = SearchScope.Subtree,
-                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:=2)(!UserAccountControl:1.2.840.113556.1.4.803:=65536))"
+                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:={AccountFlag.Disable})(!UserAccountControl:1.2.840.113556.1.4.803:={AccountFlag.DontExpirePassword}))"
             };
             PropertiesToLoad(searcher, null);
 
@@ -415,7 +415,7 @@ namespace EzActiveDirectory
         }
         private bool PasswordNeverExpires(object directoryObject)
         {
-            return CheckAccountWithFlag(directoryObject, AccountFlag.PasswordNeverExpires);
+            return CheckAccountWithFlag(directoryObject, AccountFlag.DontExpirePassword);
         }
         private bool CheckAccountWithFlag(object directoryObject, AccountFlag flag)
         {
