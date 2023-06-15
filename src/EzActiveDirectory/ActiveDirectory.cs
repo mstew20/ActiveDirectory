@@ -257,7 +257,7 @@ namespace EzActiveDirectory
             {
                 PageSize=1000,
                 SearchScope = SearchScope.Subtree,
-                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:={AccountFlag.Disable})(!UserAccountControl:1.2.840.113556.1.4.803:={AccountFlag.DontExpirePassword}))"
+                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:={(int)AccountFlag.Disable})(!UserAccountControl:1.2.840.113556.1.4.803:={(int)AccountFlag.DontExpirePassword}))"
             };
             PropertiesToLoad(searcher, null);
 
@@ -409,17 +409,17 @@ namespace EzActiveDirectory
 
             return sb.ToString();
         }
-        private bool IsActive(object directoryObject)
+        private bool IsActive(int userAccountControl)
         {
-            return !CheckAccountWithFlag(directoryObject, AccountFlag.Disable);
+            return !CheckAccountWithFlag(userAccountControl, AccountFlag.Disable);
         }
-        private bool PasswordNeverExpires(object directoryObject)
+        private bool PasswordNeverExpires(int userAccountControl)
         {
-            return CheckAccountWithFlag(directoryObject, AccountFlag.DontExpirePassword);
+            return CheckAccountWithFlag(userAccountControl, AccountFlag.DontExpirePassword);
         }
-        private bool CheckAccountWithFlag(object directoryObject, AccountFlag flag)
+        private bool CheckAccountWithFlag(int userAccountControl, AccountFlag flag)
         {
-            int flags = (int)directoryObject;
+            int flags = userAccountControl;
             return Convert.ToBoolean(flags & (int)flag);
         }
         private void PropertiesToLoad(DirectorySearcher de, string[] properties)
