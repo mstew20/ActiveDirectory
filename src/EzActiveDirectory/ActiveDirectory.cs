@@ -193,7 +193,7 @@ namespace EzActiveDirectory
 
                 de.CommitChanges();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -255,21 +255,22 @@ namespace EzActiveDirectory
         {
             using DirectorySearcher searcher = new(GetDirectoryEntry(LdapPath))
             {
-                PageSize=1000,
+                PageSize = 1000,
                 SearchScope = SearchScope.Subtree,
-                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:=2)(!UserAccountControl:1.2.840.113556.1.4.803:=65536))"
+                Filter = $"(&(objectClass=user)(objectCategory=person)(lockoutTime:1.2.840.113556.1.4.804:=4294967295)(!UserAccountControl:1.2.840.113556.1.4.803:={(int)AccountFlag.Disable})(!UserAccountControl:1.2.840.113556.1.4.803:={(int)AccountFlag.DontExpirePassword}))"
             };
             PropertiesToLoad(searcher, null);
 
-            List<Dictionary<string, ResultPropertyValueCollection>> dict = new();
+            List<UserResultCollection> dict = new();
 
             foreach (SearchResult user in searcher.FindAll())
             {
-                Dictionary<string, ResultPropertyValueCollection> tempDict = new();
+                UserResultCollection tempDict = new();
 
                 foreach (var p in searcher.PropertiesToLoad)
                 {
-                    tempDict.Add(p, user.Properties[p]);
+                    var val = new UserSearchResult { Result = user.Properties[p] };
+                    tempDict.Add(p, val);
                 }
                 dict.Add(tempDict);
             }
@@ -315,7 +316,7 @@ namespace EzActiveDirectory
                     .Replace($".{Domain}", "");
                 message = $"{server}: {badLogonCount} Failed last on {badLogonTime?.ToLocalTime().ToString("MM/dd/yyy h:mm tt")}";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 message = $"Failed to connect to {domain}";
             }
@@ -330,10 +331,10 @@ namespace EzActiveDirectory
         }
 
         //  Private AD Methods
-        private List<Dictionary<string, ResultPropertyValueCollection>> GetUsersList(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null, params string[] propertiesToLoad)
+        private List<UserResultCollection> GetUsersList(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null, params string[] propertiesToLoad)
         {
             //List<ADUser> users = new List<ADUser>();
-            List<Dictionary<string, ResultPropertyValueCollection>> output = new();
+            List<UserResultCollection> output = new();
             using var de = GetDirectoryEntry(LdapPath, credentials);
             var filter = SearchFilter(firstName, lastName, empId, userName);
 
@@ -345,14 +346,15 @@ namespace EzActiveDirectory
             };
             PropertiesToLoad(search, propertiesToLoad);
 
-            using SearchResultCollection result = search.FindAll();
-            foreach (SearchResult r in result)
+            using SearchResultCollection results = search.FindAll();
+            foreach (SearchResult r in results)
             {
-                Dictionary<string, ResultPropertyValueCollection> tempDict = new();
+                UserResultCollection tempDict = new();
 
                 foreach (var p in search.PropertiesToLoad)
                 {
-                    tempDict.Add(p, r.Properties[p]);
+                    var result = new UserSearchResult { Result = r.Properties[p] };
+                    tempDict.Add(p, result);
                 }
 
                 output.Add(tempDict);
@@ -409,23 +411,24 @@ namespace EzActiveDirectory
 
             return sb.ToString();
         }
-        private bool IsActive(object directoryObject)
+        private bool IsActive(int userAccountControl)
         {
-            int flags = (int)directoryObject;
-
-            return !Convert.ToBoolean(flags & 0x0002);
+            return !CheckAccountWithFlag(userAccountControl, AccountFlag.Disable);
         }
-        private bool PasswordNeverExpires(object directoryObject)
+        private bool PasswordNeverExpires(int userAccountControl)
         {
-            int flags = (int)directoryObject;
-
-            return Convert.ToBoolean(flags & 0x10000);
+            return CheckAccountWithFlag(userAccountControl, AccountFlag.DontExpirePassword);
+        }
+        private bool CheckAccountWithFlag(int userAccountControl, AccountFlag flag)
+        {
+            int flags = userAccountControl;
+            return Convert.ToBoolean(flags & (int)flag);
         }
         private void PropertiesToLoad(DirectorySearcher de, string[] properties)
         {
             if (properties == null || properties.Length == 0)
             {
-                string[] props = 
+                string[] props =
                 {
                     //props.Add("distinguishedname");
                     Property.DisplayName,
@@ -452,7 +455,9 @@ namespace EzActiveDirectory
                     Property.Notes,
                     Property.AccountControl,
                     Property.Manager,
-                    Property.PasswordExpireDate
+                    Property.PasswordExpireDate,
+                    Property.AdminDescription,
+                    Property.ExtensionAttribute8
                 };
                 de.PropertiesToLoad.AddRange(props);
             }
@@ -464,7 +469,7 @@ namespace EzActiveDirectory
                 }
             }
         }
-        private List<ActiveDirectoryUser> ConvertToActiveDirectoryUser(List<Dictionary<string, ResultPropertyValueCollection>> users)
+        private List<ActiveDirectoryUser> ConvertToActiveDirectoryUser(List<UserResultCollection> users)
         {
             List<ActiveDirectoryUser> output = new();
 
@@ -472,36 +477,43 @@ namespace EzActiveDirectory
             {
                 ActiveDirectoryUser user = new();
 
-                user.Path = userResults[Property.AdsPath].GetValue<string>();
-                user.CanonicalName = userResults[Property.CanonicalName].GetValue<string>();
-                user.DisplayName = userResults[Property.DisplayName].GetValue<string>();
-                user.FullName = userResults[Property.Name].GetValue<string>();
-                user.FirstName = userResults[Property.FirstName].GetValue<string>();
-                user.LastName = userResults[Property.LastName].GetValue<string>();
-                user.EmployeeId = userResults[Property.EmployeeId].GetValue<string>();
-                user.IsLockedOut = userResults[Property.LockOutTime].GetValue<bool>();
-                user.Email = userResults[Property.Mail].GetValue<string>();
-                user.UserName = userResults[Property.Username].GetValue<string>();
-                user.Notes = userResults[Property.Notes].GetValue<string>();
-                user.HomeDirectory = userResults[Property.HomeDirectory].GetValue<string>();
-                user.State = userResults[Property.State].GetValue<string>();
-                user.City = userResults[Property.City].GetValue<string>();
-                user.Office = userResults[Property.OfficeLocation].GetValue<string>();
-                user.DateCreated = userResults[Property.Created].GetValue<DateTime>();
-                user.DateModified = userResults[Property.Changed].GetValue<DateTime>();
-                user.StreetAddress = userResults[Property.Address].GetValue<string>();
-                user.JobTitle = userResults[Property.JobTitle].GetValue<string>();
-                user.Department = userResults[Property.Department].GetValue<string>();
-                user.AccountExpireDate = GetAccountExpireDate(userResults[Property.AccountExpires].GetValue<long>());
+                user.AccountControl = userResults.GetValue<int>(Property.AccountControl);
+                user.Path = userResults.GetValue<string>(Property.AdsPath);
+                user.CanonicalName = userResults.GetValue<string>(Property.CanonicalName);
+                user.DisplayName = userResults.GetValue<string>(Property.DisplayName);
+                user.FullName = userResults.GetValue<string>(Property.Name);
+                user.FirstName = userResults.GetValue<string>(Property.FirstName);
+                user.LastName = userResults.GetValue<string>(Property.LastName);
+                user.EmployeeId = userResults.GetValue<string>(Property.EmployeeId);
+                user.IsLockedOut = userResults.GetValue<bool>(Property.LockOutTime);
+                user.Email = userResults.GetValue<string>(Property.Mail);
+                user.UserName = userResults.GetValue<string>(Property.Username);
+                user.Notes = userResults.GetValue<string>(Property.Notes);
+                user.HomeDirectory = userResults.GetValue<string>(Property.HomeDirectory);
+                user.State = userResults.GetValue<string>(Property.State);
+                user.City = userResults.GetValue<string>(Property.City);
+                user.Office = userResults.GetValue<string>(Property.OfficeLocation);
+                user.DateCreated = userResults.GetValue<DateTime>(Property.Created);
+                user.DateModified = userResults.GetValue<DateTime>(Property.Changed);
+                user.StreetAddress = userResults.GetValue<string>(Property.Address);
+                user.JobTitle = userResults.GetValue<string>(Property.JobTitle);
+                user.Department = userResults.GetValue<string>(Property.Department);
+                user.AccountExpireDate = GetAccountExpireDate(userResults.GetValue<long>(Property.AccountExpires));
                 user.IsExpired = IsExpired(user.AccountExpireDate);
-                user.IsActive = IsActive(userResults[Property.AccountControl].GetValue<object>());
-                var cnManager = userResults[Property.Manager].GetValue<string>();
+                user.IsActive = IsActive(user.AccountControl);
+                var cnManager = userResults.GetValue<string>(Property.Manager);
                 user.Manager = cnManager?.Substring(3, cnManager.IndexOf(",OU") - 3).Replace("\\", "");
-                user.PasswordLastSet = DateTime.FromFileTimeUtc(userResults[Property.PasswordLastSet].GetValue<long>()).ToLocalTime();
-                user.PasswordNeverExpires = PasswordNeverExpires(userResults[Property.AccountControl].GetValue<object>());
+                user.PasswordLastSet = userResults.GetValue(Property.PasswordLastSet, x => DateTime.FromFileTimeUtc((long)x)).ToLocalTime();
+                user.PasswordNeverExpires = PasswordNeverExpires(user.AccountControl);
                 if (!user.PasswordNeverExpires)
                 {
-                    user.PasswordExpiryDate = userResults[Property.PasswordExpireDate].GetValue(x => DateTime.FromFileTime((long)x));
+                    user.PasswordExpiryDate = userResults.GetValue(Property.PasswordExpireDate, x => DateTime.FromFileTime((long)x));
+                }
+
+                user.AdditionalProperties = new();
+                foreach (var item in userResults.Where(x=> !x.Value.CheckedResult))
+                {
+                    user.AdditionalProperties.Add(item.Key, item.Value.Result);
                 }
 
                 output.Add(user);

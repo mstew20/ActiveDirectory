@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EzActiveDirectory.Models;
+using System;
 using System.DirectoryServices;
 
 namespace EzActiveDirectory
@@ -34,6 +35,13 @@ namespace EzActiveDirectory
             }
 
             return default;
+        }
+        public static T GetValue<T>(this UserResultCollection result, string key, Func<object, T> converter = null)
+        {
+            T output = result[key].Result.GetValue(converter);
+            result[key].CheckedResult = true;
+
+            return output;
         }
     }
 }

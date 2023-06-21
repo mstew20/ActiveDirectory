@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace EzActiveDirectory;
-public class Property
+public static class Property
 {
     public const string AccountControl = "userAccountControl";
     public const string AccountExpires = "accountExpires";
@@ -38,4 +38,6 @@ public class Property
     public const string Username = "sAMAccountName";
     public const string UserPrincipalName = "userPrincipalName";
     public const string PasswordExpireDate = "msDS-UserPasswordExpiryTimeComputed";
+    public const string AdminDescription = "adminDescription";
+    public const string ExtensionAttribute8 = "extensionAttribute8";
 }
