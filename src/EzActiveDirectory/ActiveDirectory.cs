@@ -455,7 +455,9 @@ namespace EzActiveDirectory
                     Property.Notes,
                     Property.AccountControl,
                     Property.Manager,
-                    Property.PasswordExpireDate
+                    Property.PasswordExpireDate,
+                    Property.AdminDescription,
+                    Property.ExtensionAttribute8
                 };
                 de.PropertiesToLoad.AddRange(props);
             }
@@ -506,6 +508,12 @@ namespace EzActiveDirectory
                 if (!user.PasswordNeverExpires)
                 {
                     user.PasswordExpiryDate = userResults.GetValue(Property.PasswordExpireDate, x => DateTime.FromFileTime((long)x));
+                }
+
+                user.AdditionalProperties = new();
+                foreach (var item in userResults.Where(x=> !x.Value.CheckedResult))
+                {
+                    user.AdditionalProperties.Add(item.Key, item.Value.Result);
                 }
 
                 output.Add(user);

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.DirectoryServices;
 
 namespace EzActiveDirectory.Models
 {
@@ -37,12 +39,13 @@ namespace EzActiveDirectory.Models
                     return Office;
                 }
 
-                return $"{ Office } - { City }, { State }";
+                return $"{Office} - {City}, {State}";
             }
         }
         public string Notes { get; set; }
         public string Manager { get; set; }
         public bool IsActive { get; set; }
         public bool PasswordNeverExpires { get; set; }
+        public Dictionary<string, ResultPropertyValueCollection> AdditionalProperties { get; set; }
     }
 }
