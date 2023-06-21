@@ -38,4 +38,6 @@ public static class Property
     public const string Username = "sAMAccountName";
     public const string UserPrincipalName = "userPrincipalName";
     public const string PasswordExpireDate = "msDS-UserPasswordExpiryTimeComputed";
+    public const string AdminDescription = "adminDescription";
+    public const string ExtensionAttribute8 = "extensionAttribute8";
 }
