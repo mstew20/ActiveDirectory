@@ -233,24 +233,6 @@ namespace EzActiveDirectory
 
             return output;
         }
-        public async Task<IEnumerable<UnlockUserModel>> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user)
-        {
-            List<Task> tasks = new();
-            var domains = GetDomains();
-            List<UnlockUserModel> output = new();
-
-            foreach (var d in domains)
-            {
-                tasks.Add(Task.Run(() =>
-                {
-                    output.Add(CheckUserDomain(d, user.UserName));
-                    UnlockToolAccountChecked?.Invoke(output);
-                }));
-            }
-
-            await Task.WhenAll(tasks);
-            return output;
-        }
         public async IAsyncEnumerable<UnlockUserModel> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user)
         {
             List<Task<UnlockUserModel>> tasks = new();
@@ -264,7 +246,7 @@ namespace EzActiveDirectory
                 }));
             }
             List<Task<UnlockUserModel>> remaining = new();
-            
+
             while (remaining.Count != 0)
             {
                 var task = await Task.WhenAny(tasks);
@@ -532,7 +514,7 @@ namespace EzActiveDirectory
                 }
 
                 user.AdditionalProperties = new();
-                foreach (var item in userResults.Where(x=> !x.Value.CheckedResult))
+                foreach (var item in userResults.Where(x => !x.Value.CheckedResult))
                 {
                     user.AdditionalProperties.Add(item.Key, item.Value.Result);
                 }
