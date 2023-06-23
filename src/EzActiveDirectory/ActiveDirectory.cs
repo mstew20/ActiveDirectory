@@ -251,6 +251,27 @@ namespace EzActiveDirectory
             await Task.WhenAll(tasks);
             return output;
         }
+        public async IAsyncEnumerable<UnlockUserModel> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user)
+        {
+            List<Task<UnlockUserModel>> tasks = new();
+            var domains = GetDomains();
+
+            foreach (var d in domains)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    return CheckUserDomain(d, user.UserName);
+                }));
+            }
+            List<Task<UnlockUserModel>> remaining = new();
+            
+            while (remaining.Count != 0)
+            {
+                var task = await Task.WhenAny(tasks);
+                remaining.Remove(task);
+                yield return await task;
+            }
+        }
         public List<ActiveDirectoryUser> GetAllLockedUsers()
         {
             using DirectorySearcher searcher = new(GetDirectoryEntry(LdapPath))
