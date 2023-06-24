@@ -245,12 +245,11 @@ namespace EzActiveDirectory
                     return CheckUserDomain(d, user.UserName);
                 }));
             }
-            List<Task<UnlockUserModel>> remaining = new();
 
-            while (remaining.Count != 0)
+            while (tasks.Count != 0)
             {
                 var task = await Task.WhenAny(tasks);
-                remaining.Remove(task);
+                tasks.Remove(task);
                 yield return await task;
             }
         }
