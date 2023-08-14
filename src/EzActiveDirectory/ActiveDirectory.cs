@@ -150,8 +150,8 @@ namespace EzActiveDirectory
             foreach (var g in user.Properties[Property.GroupMember])
             {
                 var groupPath = g.ToString();
-                var groupName = groupPath.Substring(0, groupPath.IndexOf(","));
-                groupName = groupName.Substring(3);
+                var groupName = groupPath[..groupPath.IndexOf(",")];
+                groupName = groupName[3..];
                 groupPath = $"{LDAP_STRING}{groupPath}";
 
                 ActiveDirectoryGroup group = new() { Name = groupName, Path = groupPath };
@@ -224,7 +224,7 @@ namespace EzActiveDirectory
             {
                 StringBuilder sb = new();
                 sb.Append(domain.Properties["name"].Value().ToString());
-                sb.Append(".");
+                sb.Append('.');
                 sb.Append(Domain);
                 output.Add(sb.ToString());
             }
@@ -504,7 +504,7 @@ namespace EzActiveDirectory
                 user.IsExpired = IsExpired(user.AccountExpireDate);
                 user.IsActive = IsActive(user.AccountControl);
                 var cnManager = userResults.GetValue<string>(Property.Manager);
-                user.Manager = cnManager?.Substring(3, cnManager.IndexOf(",OU") - 3).Replace("\\", "");
+                user.Manager = cnManager?[3..cnManager.IndexOf(",OU")].Replace("\\", "");
                 user.PasswordLastSet = userResults.GetValue(Property.PasswordLastSet, x => DateTime.FromFileTimeUtc((long)x)).ToLocalTime();
                 user.PasswordNeverExpires = PasswordNeverExpires(user.AccountControl);
                 if (!user.PasswordNeverExpires)
