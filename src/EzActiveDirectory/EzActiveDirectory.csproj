@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.SDK">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
+	
   <ItemGroup>
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
-    <PackageReference Include="System.DirectoryServices" Version="6.0.0" />
+    <PackageReference Include="System.DirectoryServices" Version="7.0.1" />
   </ItemGroup>
 </Project>
