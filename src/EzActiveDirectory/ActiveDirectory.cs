@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.DirectoryServices;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -118,7 +119,7 @@ namespace EzActiveDirectory
         }
         public List<ActiveDirectoryGroup> FindGroup(string groupName, UserCredentials credentials = null)
         {
-            List<ActiveDirectoryGroup> groups = new();
+            List<ActiveDirectoryGroup> groups = [];
             using DirectoryEntry de = GetDirectoryEntry(LdapPath, credentials);
             try
             {
@@ -146,11 +147,11 @@ namespace EzActiveDirectory
         public List<ActiveDirectoryGroup> GetUserGroups(string userPath, UserCredentials credentials = null)
         {
             using var user = GetDirectoryEntry(userPath, credentials);
-            List<ActiveDirectoryGroup> groups = new();
+            List<ActiveDirectoryGroup> groups = [];
             foreach (var g in user.Properties[Property.GroupMember])
             {
                 var groupPath = g.ToString();
-                var groupName = groupPath[..groupPath.IndexOf(",")];
+                var groupName = groupPath[..groupPath.IndexOf(',')];
                 groupName = groupName[3..];
                 groupPath = $"{LDAP_STRING}{groupPath}";
 
@@ -219,7 +220,7 @@ namespace EzActiveDirectory
             using DirectorySearcher searcher = new(de, filter);
             var results = searcher.FindAll();
 
-            List<string> output = new();
+            List<string> output = [];
             foreach (SearchResult domain in results)
             {
                 StringBuilder sb = new();
@@ -235,7 +236,7 @@ namespace EzActiveDirectory
         }
         public async IAsyncEnumerable<UnlockUserModel> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user)
         {
-            List<Task<UnlockUserModel>> tasks = new();
+            List<Task<UnlockUserModel>> tasks = [];
             var domains = GetDomains();
 
             foreach (var d in domains)
@@ -263,11 +264,11 @@ namespace EzActiveDirectory
             };
             PropertiesToLoad(searcher, null);
 
-            List<UserResultCollection> dict = new();
+            List<UserResultCollection> dict = [];
 
             foreach (SearchResult user in searcher.FindAll())
             {
-                UserResultCollection tempDict = new();
+                UserResultCollection tempDict = [];
 
                 foreach (var p in searcher.PropertiesToLoad)
                 {
@@ -295,7 +296,7 @@ namespace EzActiveDirectory
                     SearchScope = SearchScope.Subtree,
                     Filter = $"(&(objectClass=user)(objectCategory=person) {filter})"
                 };
-                PropertiesToLoad(search, new[] { Property.BadPasswordTime, Property.BadPasswordCount, Property.LockOutTime, Property.AdsPath });
+                PropertiesToLoad(search, [Property.BadPasswordTime, Property.BadPasswordCount, Property.LockOutTime, Property.AdsPath]);
 
                 SearchResult result = search.FindOne();
                 DateTime? badLogonTime = DateTime.FromFileTime(result.Properties[Property.BadPasswordTime].GetValue<long>());
@@ -336,7 +337,7 @@ namespace EzActiveDirectory
         private List<UserResultCollection> GetUsersList(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null, params string[] propertiesToLoad)
         {
             //List<ADUser> users = new List<ADUser>();
-            List<UserResultCollection> output = new();
+            List<UserResultCollection> output = [];
             using var de = GetDirectoryEntry(LdapPath, credentials);
             var filter = SearchFilter(firstName, lastName, empId, userName);
 
@@ -351,7 +352,7 @@ namespace EzActiveDirectory
             using SearchResultCollection results = search.FindAll();
             foreach (SearchResult r in results)
             {
-                UserResultCollection tempDict = new();
+                UserResultCollection tempDict = [];
 
                 foreach (var p in search.PropertiesToLoad)
                 {
@@ -365,7 +366,7 @@ namespace EzActiveDirectory
 
             return output;
         }
-        private bool IsExpired(DateTime? date)
+        private static bool IsExpired(DateTime? date)
         {
             bool output = false;
 
@@ -381,7 +382,7 @@ namespace EzActiveDirectory
 
             return output;
         }
-        private DateTime? GetAccountExpireDate(long fileTime)
+        private static DateTime? GetAccountExpireDate(long fileTime)
         {
             DateTime? date = null;
             if (fileTime != 0 && fileTime < long.MaxValue)
@@ -395,7 +396,7 @@ namespace EzActiveDirectory
 
             return date;
         }
-        private string SearchFilter(string firstName, string lastName, string empId, string userName)
+        private static string SearchFilter(string firstName, string lastName, string empId, string userName)
         {
             StringBuilder sb = new();
 
@@ -413,25 +414,25 @@ namespace EzActiveDirectory
 
             return sb.ToString();
         }
-        private bool IsActive(int userAccountControl)
+        private static bool IsActive(int userAccountControl)
         {
             return !CheckAccountWithFlag(userAccountControl, AccountFlag.Disable);
         }
-        private bool PasswordNeverExpires(int userAccountControl)
+        private static bool PasswordNeverExpires(int userAccountControl)
         {
             return CheckAccountWithFlag(userAccountControl, AccountFlag.DontExpirePassword);
         }
-        private bool CheckAccountWithFlag(int userAccountControl, AccountFlag flag)
+        private static bool CheckAccountWithFlag(int userAccountControl, AccountFlag flag)
         {
             int flags = userAccountControl;
             return Convert.ToBoolean(flags & (int)flag);
         }
-        private void PropertiesToLoad(DirectorySearcher de, string[] properties)
+        private static void PropertiesToLoad(DirectorySearcher de, string[] properties)
         {
             if (properties == null || properties.Length == 0)
             {
                 string[] props =
-                {
+                [
                     //props.Add("distinguishedname");
                     Property.DisplayName,
                     Property.CanonicalName,
@@ -460,7 +461,7 @@ namespace EzActiveDirectory
                     Property.PasswordExpireDate,
                     Property.AdminDescription,
                     Property.ExtensionAttribute8
-                };
+                ];
                 de.PropertiesToLoad.AddRange(props);
             }
             else
@@ -471,48 +472,49 @@ namespace EzActiveDirectory
                 }
             }
         }
-        private List<ActiveDirectoryUser> ConvertToActiveDirectoryUser(List<UserResultCollection> users)
+        private static List<ActiveDirectoryUser> ConvertToActiveDirectoryUser(List<UserResultCollection> users)
         {
-            List<ActiveDirectoryUser> output = new();
+            List<ActiveDirectoryUser> output = [];
 
             foreach (var userResults in users)
             {
-                ActiveDirectoryUser user = new();
-
-                user.AccountControl = userResults.GetValue<int>(Property.AccountControl);
-                user.Path = userResults.GetValue<string>(Property.AdsPath);
-                user.CanonicalName = userResults.GetValue<string>(Property.CanonicalName);
-                user.DisplayName = userResults.GetValue<string>(Property.DisplayName);
-                user.FullName = userResults.GetValue<string>(Property.Name);
-                user.FirstName = userResults.GetValue<string>(Property.FirstName);
-                user.LastName = userResults.GetValue<string>(Property.LastName);
-                user.EmployeeId = userResults.GetValue<string>(Property.EmployeeId);
-                user.IsLockedOut = userResults.GetValue<bool>(Property.LockOutTime);
-                user.Email = userResults.GetValue<string>(Property.Mail);
-                user.UserName = userResults.GetValue<string>(Property.Username);
-                user.Notes = userResults.GetValue<string>(Property.Notes);
-                user.HomeDirectory = userResults.GetValue<string>(Property.HomeDirectory);
-                user.State = userResults.GetValue<string>(Property.State);
-                user.City = userResults.GetValue<string>(Property.City);
-                user.Office = userResults.GetValue<string>(Property.OfficeLocation);
-                user.DateCreated = userResults.GetValue<DateTime>(Property.Created);
-                user.DateModified = userResults.GetValue<DateTime>(Property.Changed);
-                user.StreetAddress = userResults.GetValue<string>(Property.Address);
-                user.JobTitle = userResults.GetValue<string>(Property.JobTitle);
-                user.Department = userResults.GetValue<string>(Property.Department);
-                user.AccountExpireDate = GetAccountExpireDate(userResults.GetValue<long>(Property.AccountExpires));
+                ActiveDirectoryUser user = new()
+                {
+                    AccountControl = userResults.GetValue<int>(Property.AccountControl),
+                    Path = userResults.GetValue<string>(Property.AdsPath),
+                    CanonicalName = userResults.GetValue<string>(Property.CanonicalName),
+                    DisplayName = userResults.GetValue<string>(Property.DisplayName),
+                    FullName = userResults.GetValue<string>(Property.Name),
+                    FirstName = userResults.GetValue<string>(Property.FirstName),
+                    LastName = userResults.GetValue<string>(Property.LastName),
+                    EmployeeId = userResults.GetValue<string>(Property.EmployeeId),
+                    IsLockedOut = userResults.GetValue<bool>(Property.LockOutTime),
+                    Email = userResults.GetValue<string>(Property.Mail),
+                    UserName = userResults.GetValue<string>(Property.Username),
+                    Notes = userResults.GetValue<string>(Property.Notes),
+                    HomeDirectory = userResults.GetValue<string>(Property.HomeDirectory),
+                    State = userResults.GetValue<string>(Property.State),
+                    City = userResults.GetValue<string>(Property.City),
+                    Office = userResults.GetValue<string>(Property.OfficeLocation),
+                    DateCreated = userResults.GetValue<DateTime>(Property.Created),
+                    DateModified = userResults.GetValue<DateTime>(Property.Changed),
+                    StreetAddress = userResults.GetValue<string>(Property.Address),
+                    JobTitle = userResults.GetValue<string>(Property.JobTitle),
+                    Department = userResults.GetValue<string>(Property.Department),
+                    AccountExpireDate = GetAccountExpireDate(userResults.GetValue<long>(Property.AccountExpires)),
+                    PasswordLastSet = userResults.GetValue(Property.PasswordLastSet, x => DateTime.FromFileTimeUtc((long)x)).ToLocalTime()
+            };
                 user.IsExpired = IsExpired(user.AccountExpireDate);
                 user.IsActive = IsActive(user.AccountControl);
                 var cnManager = userResults.GetValue<string>(Property.Manager);
                 user.Manager = cnManager?[3..cnManager.IndexOf(",OU")].Replace("\\", "");
-                user.PasswordLastSet = userResults.GetValue(Property.PasswordLastSet, x => DateTime.FromFileTimeUtc((long)x)).ToLocalTime();
                 user.PasswordNeverExpires = PasswordNeverExpires(user.AccountControl);
                 if (!user.PasswordNeverExpires)
                 {
                     user.PasswordExpiryDate = userResults.GetValue(Property.PasswordExpireDate, x => DateTime.FromFileTime((long)x));
                 }
 
-                user.AdditionalProperties = new();
+                user.AdditionalProperties = [];
                 foreach (var item in userResults.Where(x => !x.Value.CheckedResult))
                 {
                     user.AdditionalProperties.Add(item.Key, item.Value.Result);
