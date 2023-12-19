@@ -22,8 +22,6 @@ namespace EzActiveDirectory
         public string Domain { get; private set; }
         public string LdapPath { get; private set; }
 
-        public event Action<List<UnlockUserModel>> UnlockToolAccountChecked;
-
         // Initialization
         public void Initialize(string domain = "", string ldap = "")
         {
