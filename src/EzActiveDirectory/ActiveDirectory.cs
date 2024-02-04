@@ -142,6 +142,20 @@ namespace EzActiveDirectory
 
 			return groups;
 		}
+		public ActiveDirectoryGroup GetGroup(string groupPath, UserCredentials credentials = null)
+		{
+			DirectoryEntry de = GetDirectoryEntry(groupPath, credentials);
+
+			ActiveDirectoryGroup group = new()
+			{
+				Path = de.Path,
+				Name = de.Properties[Property.Name].Value?.ToString(),
+				Description = de.Properties["description"].Value?.ToString(),
+				Notes = de.Properties[Property.Notes].Value?.ToString()
+			};
+
+			return group;
+		}
 		public List<ActiveDirectoryGroup> GetUserGroups(string userPath, UserCredentials credentials = null)
 		{
 			using var user = GetDirectoryEntry(userPath, credentials);
