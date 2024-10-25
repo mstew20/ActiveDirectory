@@ -19,12 +19,14 @@ namespace EzActiveDirectory
         public UserAccount Users { get; private set; }
         public Groups Groups { get; private set; }
         public BitlockerSearch Bitlocker { get; private set; }
+        public ComputerAccount Computers { get; private set; }
 
         public ActiveDirectory()
         {
             Users = new(this);
             Groups = new(this);
             Bitlocker = new(this);
+            Computers = new(this);
         }
 
         // Initialization
