@@ -6,10 +6,18 @@ using System.DirectoryServices;
 namespace EzActiveDirectory.Search;
 public class Groups
 {
-    public static bool RemoveGroup(string userPath, string groupPath, DirectoryEntry deGroup)
+    private readonly ActiveDirectory _ad;
+
+    public Groups(ActiveDirectory ad)
+    {
+        _ad = ad;
+    }
+
+    public bool RemoveUser(string userPath, string groupPath, UserCredentials credentials = null)
     {
         try
         {
+            using var deGroup = _ad.GetDirectoryEntry(groupPath, credentials);
             deGroup.Invoke("Remove", new object[] { userPath });
             deGroup.CommitChanges();
         }
@@ -20,10 +28,11 @@ public class Groups
 
         return true;
     }
-    public static bool AddGroup(string userPath, string groupPath, DirectoryEntry deGroup)
+    public bool AddUser(string userPath, string groupPath, UserCredentials credentials = null)
     {
         try
         {
+            using var deGroup = _ad.GetDirectoryEntry(groupPath, credentials);
             deGroup.Invoke("Add", new object[] { userPath });
             deGroup.CommitChanges();
         }
@@ -34,12 +43,13 @@ public class Groups
 
         return true;
     }
-    public static List<ActiveDirectoryGroup> FindGroup(string groupName, DirectoryEntry directoryEntry)
+    public List<ActiveDirectoryGroup> Find(string groupName, UserCredentials credentials = null)
     {
         List<ActiveDirectoryGroup> groups = [];
 
         try
         {
+            using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
             directoryEntry.RefreshCache();
             using DirectorySearcher deSearcher = new(directoryEntry);
             deSearcher.Filter = $"(&(objectClass=group)(name=*{groupName}*))";
@@ -61,8 +71,9 @@ public class Groups
 
         return groups;
     }
-    public static ActiveDirectoryGroup GetGroup(string groupPath, DirectoryEntry directoryEntry)
+    public ActiveDirectoryGroup Get(string groupPath, UserCredentials credentials = null)
     {
+        using var directoryEntry = _ad.GetDirectoryEntry(groupPath, credentials);
         ActiveDirectoryGroup group = new()
         {
             Path = directoryEntry.Path,

@@ -6,8 +6,16 @@ using System.DirectoryServices;
 namespace EzActiveDirectory.Search;
 public class BitlockerSearch
 {
-    public static List<Bitlocker> GetBitlockerByID(string keyId, DirectoryEntry directoryEntry)
+    private readonly ActiveDirectory _ad;
+
+    public BitlockerSearch(ActiveDirectory ad)
     {
+        _ad = ad;
+    }
+
+    public List<Bitlocker> GetByID(string keyId, UserCredentials credentials = null)
+    {
+        using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
         DirectorySearcher searcher = new(directoryEntry)
         {
             SearchScope = SearchScope.Subtree,
@@ -31,8 +39,9 @@ public class BitlockerSearch
 
         return output;
     }
-    public static List<Bitlocker> GetBitlockerByComputerName(string compName, DirectoryEntry directoryEntry)
+    public List<Bitlocker> GetByComputerName(string compName, UserCredentials credentials = null)
     {
+        using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
         DirectorySearcher searcher = new(directoryEntry)
         {
             Filter = $"(&(objectClass=computer)(cn={compName}))"

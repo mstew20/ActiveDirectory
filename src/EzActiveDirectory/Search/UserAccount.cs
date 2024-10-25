@@ -9,15 +9,23 @@ using System.Threading.Tasks;
 namespace EzActiveDirectory.Search;
 public class UserAccount
 {
-    public static List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, DirectoryEntry directoryEntry)
+    private readonly ActiveDirectory _ad;
+
+    public UserAccount(ActiveDirectory ad)
     {
-        var users = GetUsersList(firstName, lastName, empId, $"{userName}*", directoryEntry);
+        _ad = ad;
+    }
+    public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null)
+    {
+        using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
+        var users = GetUsers(firstName, lastName, empId, $"{userName}*", directoryEntry);
         var output = ConvertToActiveDirectoryUser(users);
 
         return output;
     }
-    public static List<ActiveDirectoryUser> GetAllLockedUsers(DirectoryEntry directoryEntry)
+    public List<ActiveDirectoryUser> GetAllLockedUsers(UserCredentials credentials = null)
     {
+        using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
         using DirectorySearcher searcher = new(directoryEntry)
         {
             PageSize = 1000,
@@ -43,10 +51,10 @@ public class UserAccount
         var users = ConvertToActiveDirectoryUser(dict);
         return users;
     }
-    public static bool UnlockUser(string path, DirectoryEntry directoryEntry)
+    public bool UnlockUser(string path, UserCredentials credentials = null)
     {
         var output = false;
-
+        using var directoryEntry = _ad.GetDirectoryEntry(path, credentials);
         try
         {
             directoryEntry.Properties[Property.LockOutTime].Value = 0;
@@ -55,19 +63,17 @@ public class UserAccount
         }
         catch (Exception)
         {
+            // TODO: do something with this
             Console.WriteLine("Error trying to unlock account!");
-        }
-        finally
-        {
-            directoryEntry.Dispose();
         }
 
         return output;
     }
-    public static void ResetPassword(string path, string password, bool passwordMustChange, DirectoryEntry directoryEntry)
+    public void ResetPassword(string path, string password, bool passwordMustChange, UserCredentials credentials = null)
     {
         try
         {
+            using var directoryEntry = _ad.GetDirectoryEntry(path, credentials);
             directoryEntry.Invoke("SetPassword", password);
 
             if (passwordMustChange)
@@ -81,26 +87,22 @@ public class UserAccount
         {
             throw;
         }
-        finally
-        {
-
-            directoryEntry.Dispose();
-        }
     }
-    public static void ExpireAt(string userPath, DateTime date, DirectoryEntry directoryEntry)
+    public void ExpireAt(string userPath, DateTime date, UserCredentials credentials = null)
     {
-        SaveProperty(userPath, Property.AccountExpires, date.ToFileTime().ToString(), directoryEntry);
+        SaveProperty(userPath, Property.AccountExpires, date.ToFileTime().ToString(), credentials);
     }
-    public static void ExpireNow(string userPath, DirectoryEntry directoryEntry)
+    public void ExpireNow(string userPath, UserCredentials credentials = null)
     {
-        ExpireAt(userPath, DateTime.Now, directoryEntry);
+        ExpireAt(userPath, DateTime.Now, credentials);
     }
-    public static void NeverExpires(string userPath, DirectoryEntry directoryEntry)
+    public void NeverExpires(string userPath, UserCredentials credntials = null)
     {
-        ExpireAt(userPath, DateTime.FromFileTime(0), directoryEntry);
+        ExpireAt(userPath, DateTime.FromFileTime(0), credntials);
     }
-    public static List<ActiveDirectoryGroup> GetGroups(string userPath, DirectoryEntry user)
+    public List<ActiveDirectoryGroup> GetGroups(string userPath, UserCredentials credentials = null)
     {
+        using var user = _ad.GetDirectoryEntry(userPath, credentials);
         List<ActiveDirectoryGroup> groups = [];
         foreach (var g in user.Properties[Property.GroupMember])
         {
@@ -116,8 +118,10 @@ public class UserAccount
         groups = groups.OrderBy(x => x.Name).ToList();
         return groups;
     }
-    public static void SaveProperty(string path, string propertyName, string value, DirectoryEntry user)
+    // This may need to take an object value instead of string.
+    public void SaveProperty(string path, string propertyName, string value, UserCredentials credentials = null)
     {
+        using var user = _ad.GetDirectoryEntry(path, credentials);
         if (string.IsNullOrWhiteSpace(value))
         {
             if (user.Properties[propertyName]?.Count > 0)
@@ -133,24 +137,25 @@ public class UserAccount
         user.CommitChanges();
         user.Close();
     }
-    public static void SaveProperty<T>(string path, string propertyName, T value, DirectoryEntry user)
+    public void SaveProperty<T>(string path, string propertyName, T value, UserCredentials credentials = null)
     {
+        using var user = _ad.GetDirectoryEntry(path, credentials);
         user.Properties[propertyName].Value = value;
         user.CommitChanges();
         user.Close();
     }
 
     //  Unlock Tool related methods
-    public static async IAsyncEnumerable<UnlockUserModel> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user, DirectoryEntry directoryEntry, string ADDomain)
+    public async IAsyncEnumerable<UnlockUserModel> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user, UserCredentials credentials = null)
     {
         List<Task<UnlockUserModel>> tasks = [];
-        var domains = GetDomains(directoryEntry, ADDomain);
+        var domains = GetDomains(credentials);
 
         foreach (var d in domains)
         {
             tasks.Add(Task.Run(() =>
             {
-                return CheckUserDomain(d, user.UserName, directoryEntry, ADDomain);
+                return CheckUserDomain(d, user.UserName, credentials);
             }));
         }
 
@@ -162,13 +167,13 @@ public class UserAccount
         }
     }
 
-    private static UnlockUserModel CheckUserDomain(string domain, string userName, DirectoryEntry directoryEntry, string ADDomain)
+    private UnlockUserModel CheckUserDomain(string domain, string userName, UserCredentials credentials)
     {
         string message = "";
         bool isUnlocked = false;
         try
         {
-            //using DirectoryEntry de = GetDirectoryEntry($"{LDAP_STRING}{domain}", credentials);
+            using var directoryEntry = _ad.GetDirectoryEntry($"{ActiveDirectory.LDAP_STRING}{domain}", credentials);
             var filter = SearchFilter("", "", "", userName);
 
             using DirectorySearcher search = new(directoryEntry)
@@ -190,14 +195,14 @@ public class UserAccount
             bool isLockedOut = result.Properties[Property.LockOutTime].GetValue<bool>();
             if (isLockedOut || badLogonCount >= 6)
             {
-                UnlockUser(result.Properties[Property.AdsPath].GetValue<string>(), directoryEntry);
+                UnlockUser(result.Properties[Property.AdsPath].GetValue<string>());
                 isUnlocked = true;
             }
 
             var server = result.Properties[Property.AdsPath].GetValue<string>()
-                .Replace("LDAP://", "")
+                .Replace(ActiveDirectory.LDAP_STRING, "")
                 .Split('/')[0]
-                .Replace($".{ADDomain}", "");
+                .Replace($".{_ad.Domain}", "");
             message = $"{server}: {badLogonCount} Failed last on {badLogonTime?.ToLocalTime().ToString("MM/dd/yyy h:mm tt")}";
         }
         catch (Exception)
@@ -213,9 +218,10 @@ public class UserAccount
 
         return userModel;
     }
-    private static List<string> GetDomains(DirectoryEntry directoryEntry, string ADDomain)
+    private List<string> GetDomains(UserCredentials credentials = null)
     {
         string filter = "(&(objectCategory=computer) (| (primaryGroupID=516) (primaryGroupID=521)))";
+        using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
         using DirectorySearcher searcher = new(directoryEntry, filter);
         var results = searcher.FindAll();
 
@@ -225,7 +231,7 @@ public class UserAccount
             StringBuilder sb = new();
             sb.Append(domain.Properties["name"].Value().ToString());
             sb.Append('.');
-            sb.Append(ADDomain);
+            sb.Append(_ad.Domain);
             output.Add(sb.ToString());
         }
         directoryEntry.Dispose();
@@ -234,9 +240,8 @@ public class UserAccount
         return output;
     }
 
-    private static List<UserResultCollection> GetUsersList(string firstName, string lastName, string empId, string userName, DirectoryEntry de, params string[] propertiesToLoad)
+    private List<UserResultCollection> GetUsers(string firstName, string lastName, string empId, string userName, DirectoryEntry de, params string[] propertiesToLoad)
     {
-        //List<ADUser> users = new List<ADUser>();
         List<UserResultCollection> output = [];
         var filter = SearchFilter(firstName, lastName, empId, userName);
 
