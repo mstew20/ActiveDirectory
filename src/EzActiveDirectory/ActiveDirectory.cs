@@ -77,8 +77,11 @@ namespace EzActiveDirectory
         private void SetDomainFromLdap()
         {
             var domain = LdapPath.Replace(LDAP_STRING, "");
-            domain = domain.Remove(0, domain.IndexOf('/'))
-                .Replace(DC_STRING, "")
+            if (domain.Contains('/'))
+            {
+                domain = domain.Remove(0, domain.IndexOf('/'));
+            }
+            domain = domain.Replace(DC_STRING, "")
                 .Replace("/", "")
                 .Replace(",", ".");
             Domain = domain;
