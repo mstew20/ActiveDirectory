@@ -1,5 +1,6 @@
 ﻿using EzActiveDirectory.Models;
 using EzActiveDirectory.Search;
+using System.Collections.Generic;
 using System.DirectoryServices;
 using System.Text;
 
@@ -56,6 +57,27 @@ namespace EzActiveDirectory
         public void ChangeCredentials(UserCredentials creds)
         {
             _credentials = creds;
+        }
+        public List<string> GetDomainControllers(UserCredentials credentials = null)
+        {
+            string filter = "(&(objectCategory=computer) (| (primaryGroupID=516) (primaryGroupID=521)))";
+            using var directoryEntry = GetDirectoryEntry(LdapPath, credentials);
+            using DirectorySearcher searcher = new(directoryEntry, filter);
+            var results = searcher.FindAll();
+
+            List<string> output = [];
+            foreach (SearchResult domain in results)
+            {
+                StringBuilder sb = new();
+                sb.Append(domain.Properties["name"].Value().ToString());
+                sb.Append('.');
+                sb.Append(Domain);
+                output.Add(sb.ToString());
+            }
+            directoryEntry.Dispose();
+            output.Sort();
+
+            return output;
         }
 
         //  Private AD Methods

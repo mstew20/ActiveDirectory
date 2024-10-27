@@ -149,7 +149,7 @@ public class UserAccount
     public async IAsyncEnumerable<UnlockUserModel> UnlockOnAllDomainsParallelAsync(ActiveDirectoryUser user, UserCredentials credentials = null)
     {
         List<Task<UnlockUserModel>> tasks = [];
-        var domains = GetDomains(credentials);
+        var domains = _ad.GetDomainControllers(credentials);
 
         foreach (var d in domains)
         {
@@ -217,27 +217,6 @@ public class UserAccount
         };
 
         return userModel;
-    }
-    private List<string> GetDomains(UserCredentials credentials = null)
-    {
-        string filter = "(&(objectCategory=computer) (| (primaryGroupID=516) (primaryGroupID=521)))";
-        using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
-        using DirectorySearcher searcher = new(directoryEntry, filter);
-        var results = searcher.FindAll();
-
-        List<string> output = [];
-        foreach (SearchResult domain in results)
-        {
-            StringBuilder sb = new();
-            sb.Append(domain.Properties["name"].Value().ToString());
-            sb.Append('.');
-            sb.Append(_ad.Domain);
-            output.Add(sb.ToString());
-        }
-        directoryEntry.Dispose();
-        output.Sort();
-
-        return output;
     }
 
     private List<UserResultCollection> GetUsers(string firstName, string lastName, string empId, string userName, DirectoryEntry de, params string[] propertiesToLoad)
