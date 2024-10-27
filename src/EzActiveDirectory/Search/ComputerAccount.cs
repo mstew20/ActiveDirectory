@@ -23,7 +23,7 @@ public class ComputerAccount
         var comp = new Computer()
         {
             Name = result.Properties["name"].GetValue<string>(),
-            Path = result.Properties["path"].GetValue<string>(),
+            Path = result.Properties["adspath"].GetValue<string>(),
         };
 
         return comp;
