@@ -15,6 +15,7 @@ namespace EzActiveDirectory
 
 		public string Domain { get; private set; }
 		public string LdapPath { get; private set; }
+		public int MaxPasswordAge { get; set; }
 
 		public UserAccount Users { get; private set; }
 		public Groups Groups { get; private set; }
@@ -47,11 +48,13 @@ namespace EzActiveDirectory
 		{
 			Domain = domain;
 			SetLdapFromDomain();
+			MaxPasswordAge = 0;
 		}
 		public void ChangeLdap(string ldap)
 		{
 			LdapPath = ldap;
 			SetDomainFromLdap();
+			MaxPasswordAge = 0;
 		}
 		public void ChangeCredentials(UserCredentials creds)
 		{
@@ -77,6 +80,17 @@ namespace EzActiveDirectory
 			output.Sort();
 
 			return output;
+		}
+		internal int GetMaxPasswordAge()
+		{
+			using var searcher = new DirectorySearcher(GetDirectoryEntry(LdapPath));
+
+			var results = searcher.FindOne();
+			long maxDays = 0;
+			var maxPwdAge = (long)results.Properties["maxPwdAge"][0];
+			maxDays = maxPwdAge / -864_000_000_000;
+
+			return (int)maxDays;
 		}
 
 		//  Private AD Methods
