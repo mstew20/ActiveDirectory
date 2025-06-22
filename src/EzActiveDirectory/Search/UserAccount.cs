@@ -15,10 +15,10 @@ public class UserAccount
 	{
 		_ad = ad;
 	}
-	public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, UserCredentials credentials = null)
+	public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, string email, UserCredentials credentials = null)
 	{
 		using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
-		var users = GetUsers(firstName, lastName, empId, $"{userName}*", directoryEntry);
+		var users = GetUsers(firstName, lastName, empId, $"{userName}*", $"{email}*", directoryEntry);
 		var output = ConvertToActiveDirectoryUser(users);
 
 		return output;
@@ -202,7 +202,7 @@ public class UserAccount
 		try
 		{
 			using var directoryEntry = _ad.GetDirectoryEntry($"{ActiveDirectory.LDAP_STRING}{domain}", credentials);
-			var filter = SearchFilter("", "", "", userName);
+			var filter = SearchFilter(userName: userName);
 
 			using DirectorySearcher search = new(directoryEntry)
 			{
@@ -247,10 +247,10 @@ public class UserAccount
 		return userModel;
 	}
 
-	private List<UserResultCollection> GetUsers(string firstName, string lastName, string empId, string userName, DirectoryEntry de, params string[] propertiesToLoad)
+	private List<UserResultCollection> GetUsers(string firstName, string lastName, string empId, string userName, string email, DirectoryEntry de, params string[] propertiesToLoad)
 	{
 		List<UserResultCollection> output = [];
-		var filter = SearchFilter(firstName, lastName, empId, userName);
+		var filter = SearchFilter(firstName, lastName, empId, userName, email);
 
 		using DirectorySearcher search = new(de)
 		{
@@ -367,7 +367,7 @@ public class UserAccount
 
 		return date;
 	}
-	private static string SearchFilter(string firstName, string lastName, string empId, string userName)
+	private static string SearchFilter(string firstName = "", string lastName = "", string empId = "", string userName = "", string email = "")
 	{
 		StringBuilder sb = new();
 
@@ -382,6 +382,9 @@ public class UserAccount
 
 		if (!string.IsNullOrWhiteSpace(userName))
 			sb.Append($"({Property.Username}={userName})");
+
+		if (!string.IsNullOrWhiteSpace(email))
+			sb.Append($"({Property.Mail}={email})");
 
 		return sb.ToString();
 	}
