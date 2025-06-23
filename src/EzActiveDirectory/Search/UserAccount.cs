@@ -18,7 +18,7 @@ public class UserAccount
 	public List<ActiveDirectoryUser> GetUsers(string firstName, string lastName, string empId, string userName, string email, UserCredentials credentials = null)
 	{
 		using var directoryEntry = _ad.GetDirectoryEntry(_ad.LdapPath, credentials);
-		var users = GetUsers(firstName, lastName, empId, $"{userName}*", $"{email}*", directoryEntry);
+		var users = GetUsers(firstName, lastName, empId, $"{userName}*", email, directoryEntry);
 		var output = ConvertToActiveDirectoryUser(users);
 
 		return output;
